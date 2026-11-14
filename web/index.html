@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burn Calendar — Harmonized MODIS + VIIRS hotspots</title>
+<meta name="generator" content="Code written with assistance from Claude (Anthropic), an AI assistant">
+<meta name="description" content="A harmonized burning-activity calendar for Argentina built from NASA FIRMS MODIS and VIIRS active-fire hotspots, 2000 to present.">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="vendor/leaflet.draw.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="brand">
+    <h1>Burn Calendar</h1>
+    <p class="tagline">25 years of satellite fire hotspots on one consistent scale — MODIS history and VIIRS continuity, harmonized.</p>
+  </div>
+  <nav class="masthead-links">
+    <a href="#method">How it works</a>
+    <a href="https://github.com/" id="repo-link">Source code</a>
+  </nav>
+</header>
+
+<main class="layout">
+  <!-- Left: where and when -->
+  <section class="panel panel-query" aria-labelledby="q-title">
+    <h2 id="q-title">Area and dates</h2>
+    <div id="map" role="application" aria-label="Map. Draw a rectangle or polygon to choose an area of interest."></div>
+    <p class="hint">Draw a rectangle or polygon on the map, pick an example area, or type coordinates.</p>
+
+    <label class="field">
+      <span>Example areas</span>
+      <select id="preset">
+        <option value="">Choose…</option>
+      </select>
+    </label>
+
+    <fieldset class="bbox">
+      <legend>Bounding box (decimal degrees)</legend>
+      <label><span>North</span><input id="bb-n" type="number" step="0.01" min="-90" max="90"></label>
+      <label><span>South</span><input id="bb-s" type="number" step="0.01" min="-90" max="90"></label>
+      <label><span>West</span><input id="bb-w" type="number" step="0.01" min="-180" max="180"></label>
+      <label><span>East</span><input id="bb-e" type="number" step="0.01" min="-180" max="180"></label>
+      <button type="button" id="bb-apply" class="btn">Use these coordinates</button>
+    </fieldset>
+
+    <fieldset class="dates">
+      <legend>Date range</legend>
+      <label><span>From</span><input id="d-from" type="month"></label>
+      <label><span>To</span><input id="d-to" type="month"></label>
+    </fieldset>
+
+    <fieldset class="baseline">
+      <legend>“Normal” is the median of</legend>
+      <label><span>From</span><input id="b-from" type="number" min="2001" max="2026" step="1"></label>
+      <label><span>To</span><input id="b-to" type="number" min="2001" max="2026" step="1"></label>
+    </fieldset>
+
+    <div class="downloads">
+      <button type="button" id="dl-hotspots" class="btn btn-strong">Download hotspots (CSV)</button>
+      <button type="button" id="dl-monthly" class="btn">Download monthly series (CSV)</button>
+      <p id="dl-status" class="hint" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- Right: the calendar and the figures -->
+  <section class="panel panel-results" aria-live="polite">
+    <div class="area-line">
+      <h2 id="area-name">All of Argentina</h2>
+      <p id="area-meta" class="area-meta"></p>
+    </div>
+
+    <div class="headline-figures" id="figures"></div>
+
+    <figure class="calendar-block">
+      <div class="calendar-head">
+        <h3>Burning activity calendar</h3>
+        <div class="toggle" role="radiogroup" aria-label="Calendar values">
+          <button type="button" role="radio" aria-checked="true" data-mode="count">Hotspots</button>
+          <button type="button" role="radio" aria-checked="false" data-mode="anomaly">Compared with normal</button>
+        </div>
+        <button type="button" class="btn btn-small" data-png="calendar">Save PNG</button>
+      </div>
+      <div id="calendar" class="calendar"></div>
+      <figcaption id="calendar-legend" class="legend"></figcaption>
+    </figure>
+
+    <div class="detail" id="detail" aria-live="polite"></div>
+
+    <div class="charts">
+      <figure>
+        <div class="chart-head"><h3>Selected year against the normal year</h3>
+          <button type="button" class="btn btn-small" data-png="season">Save PNG</button></div>
+        <div id="season"></div>
+      </figure>
+      <figure>
+        <div class="chart-head"><h3>Hotspots per year</h3>
+          <button type="button" class="btn btn-small" data-png="annual">Save PNG</button></div>
+        <div id="annual"></div>
+      </figure>
+      <figure>
+        <div class="chart-head"><h3>Most active months</h3></div>
+        <ol id="top-months" class="rank"></ol>
+      </figure>
+    </div>
+  </section>
+</main>
+
+<section class="method" id="method">
+  <h2>How the two sensors become one record</h2>
+  <div class="method-grid">
+    <div>
+      <p>MODIS (Terra and Aqua, 1 km pixels) has watched fires since 2000 but is being retired. VIIRS (375 m pixels) continues the record with more detail, so it reports several times more hotspots for the same fires. Counting both as they are would invent a fire boom in 2012.</p>
+      <p>This tool expresses everything in <strong>MODIS-equivalent hotspots</strong>. VIIRS counts are converted with conversion factors learned where both sensors overlapped (2012–2021), separately for each 2° region and for day and night passes. Regions with little data lean on the national factor. The early Terra-only months (2000–mid 2002) are scaled the same way to match Terra + Aqua.</p>
+      <p>On days when a satellite sent no data at all, such as Terra in mid-2001 or S-NPP in 2022, 2024 and 2026, the month is scaled to its full length. Those months carry a small white dot in the calendar. Months from August 2026 use near-real-time data, which FIRMS may still reprocess.</p>
+      <p>Each conversion was tested by hiding one year at a time, learning the factors from the others, and predicting the hidden year.</p>
+    </div>
+    <div>
+      <div id="eras" class="eras"></div>
+      <table class="validation" id="validation"></table>
+    </div>
+  </div>
+  <p class="credits">Data: NASA FIRMS — MODIS Collection 6.1 and VIIRS S-NPP 375 m active fire products (LANCE / FIRMS, NASA Earthdata). Only hotspots flagged as vegetation or land fires with nominal or higher confidence are used. Challenge proposed by CONAE (Argentina). Basemap © OpenStreetMap contributors © CARTO. Built for the NASA Space Apps Challenge 2026; code written with assistance from an AI assistant (Claude, Anthropic).</p>
+</section>
+
+<div id="loading" class="loading" role="status">Loading 25 years of hotspots…</div>
+
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/leaflet.draw.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
