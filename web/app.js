@@ -155,8 +155,9 @@ let map, drawn, overlay;
 
 function initMap() {
   map = L.map("map", { zoomSnap: 0.25, attributionControl: true }).setView([-38.5, -63.5], 3.5);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-    attribution: "© OpenStreetMap contributors © CARTO", subdomains: "abcd", maxZoom: 12,
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 12, className: "basemap",
   }).addTo(map);
   drawn = new L.FeatureGroup().addTo(map);
   map.addControl(new L.Control.Draw({

@@ -7,7 +7,7 @@ burning-activity calendar for any area you choose. Emergency managers, firefight
 managers can see which months of the year usually burn, which years were exceptional, and how the
 current month compares with a normal one.
 
-**Live app:** _add the GitHub Pages link here_ · **Demo slides:** [docs/demo/burn-calendar-demo.pdf](docs/demo/burn-calendar-demo.pdf) · **Coverage:** Argentina, November 2000 → October 2026
+**Live app:** https://cucattigaston.github.io/burn-calendar/ · **Demo slides:** [docs/demo/burn-calendar-demo.pdf](docs/demo/burn-calendar-demo.pdf) · **Coverage:** Argentina, November 2000 → October 2026
 
 ![Calendar screenshot](docs/screenshot.png)
 
@@ -124,7 +124,7 @@ The app is a static site with no server or build step:
   of FIRMS' own Argentina assignments for 2025.
 - **Libraries:** D3 (ISC), Leaflet (BSD-2), Leaflet.draw (MIT), Archivo typeface (SIL OFL). All are bundled
   in `web/vendor`.
-- **Basemap:** © OpenStreetMap contributors © CARTO.
+- **Basemap:** © OpenStreetMap contributors.
 
 ## Use of AI
 

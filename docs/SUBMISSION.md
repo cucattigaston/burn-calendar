@@ -22,10 +22,10 @@ Users can also download the hotspots and charts. As MODIS is retired in 2026–2
 baseline usable.
 
 ## Link to Project Demo
-<link to docs/demo/burn-calendar-demo.pdf in the GitHub repository>
+https://github.com/cucattigaston/burn-calendar/blob/main/docs/demo/burn-calendar-demo.pdf
 
 ## Link to Final Project
-<GitHub Pages link>  (code: <GitHub repository link>)
+https://cucattigaston.github.io/burn-calendar/  (code: https://github.com/cucattigaston/burn-calendar)
 
 ## Detailed Project Description
 **What it does.**
@@ -125,4 +125,4 @@ code is marked in file headers and in the README. No AI-generated images or audi
 - D3 (ISC), Leaflet (BSD-2), Leaflet.draw (MIT), Archivo typeface (SIL OFL). All open source and bundled
   in the repository.
 - Argentina boundary: Natural Earth 1:10m (public domain), via world-atlas.
-- Basemap tiles © OpenStreetMap contributors © CARTO.
+- Basemap tiles © OpenStreetMap contributors.
