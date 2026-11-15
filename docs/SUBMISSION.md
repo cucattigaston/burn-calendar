@@ -144,7 +144,7 @@ code is marked in file headers and in the README. No AI-generated images or audi
 - **NASA FIRMS** (Fire Information for Resource Management System, LANCE / NASA Earthdata):
   - MODIS Collection 6.1 active fire / thermal anomalies, 1 km, Terra and Aqua
     (DOI 10.5067/FIRMS/MODIS/MCD14ML), Argentina, 2000–2025;
-  - VIIRS S-NPP 375 m active fire, standard (DOI 10.5067/FIRMS/VIIRS/VNP14IMGT.002) and near-real-time
+  - VIIRS S-NPP 375 m active fire VNP14IMGT, standard and near-real-time, as distributed by FIRMS
     (DOI 10.5067/FIRMS/VIIRS/VNP14IMGT_NRT.002), Argentina, 2012 to October 2026;
   - FIRMS area API with a free MAP_KEY, used for 2026.
 - FIRMS yearly country files: https://firms.modaps.eosdis.nasa.gov/country/
