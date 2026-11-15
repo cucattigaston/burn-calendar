@@ -7,7 +7,7 @@ burning-activity calendar for any area you choose. Emergency managers, firefight
 managers can see which months of the year usually burn, which years were exceptional, and how the
 current month compares with a normal one.
 
-**Live app:** https://cucattigaston.github.io/burn-calendar/ · **Demo slides:** [docs/demo/burn-calendar-demo.pdf](docs/demo/burn-calendar-demo.pdf) · **Coverage:** Argentina, November 2000 → October 2026
+**Live app:** [https://cucattigaston.github.io/burn-calendar/web/](https://cucattigaston.github.io/burn-calendar/web/) · **Demo slides:** [docs/demo/burn-calendar-demo.pdf](docs/demo/burn-calendar-demo.pdf) · **Coverage:** Argentina, November 2000 → October 2026
 
 ![Calendar screenshot](docs/screenshot.png)
 

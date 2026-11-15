@@ -25,7 +25,7 @@ baseline usable.
 https://github.com/cucattigaston/burn-calendar/blob/main/docs/demo/burn-calendar-demo.pdf
 
 ## Link to Final Project
-https://cucattigaston.github.io/burn-calendar/  (code: https://github.com/cucattigaston/burn-calendar)
+https://github.com/cucattigaston/burn-calendar  (live app: https://cucattigaston.github.io/burn-calendar/web/)
 
 ## Detailed Project Description
 **What it does.**
