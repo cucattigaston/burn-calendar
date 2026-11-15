@@ -47,6 +47,23 @@ tr.used td { font-weight: 700; }
 .ramp { display: flex; height: 26px; width: 620px; border-radius: 4px; overflow: hidden; margin-top: 40px; }
 .ramp i { flex: 1; }
 ul.plain { padding-left: 34px; display: grid; gap: 18px; }
+
+.cmp { width: 100%; font-size: 30px; }
+.cmp th, .cmp td { text-align: left !important; }
+.cmp th { font-size: 30px; }
+.cmp td:first-child { color: var(--ink2); }
+.formula { background: var(--paper); border-left: 8px solid var(--ember); border-radius: 6px; padding: 26px 34px; font-size: 40px; line-height: 1.35; }
+.formula small { display: block; font-size: 26px; color: var(--ink2); margin-top: 10px; }
+.quote { font-size: 64px; font-weight: 750; font-stretch: 75%; line-height: 1.1; max-width: 1500px; }
+.quote em { font-style: normal; color: var(--ember); }
+.calc { font-size: 34px; line-height: 1.5; }
+.calc .row { display: grid; grid-template-columns: 1fr auto; gap: 30px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.calc .row b { font-stretch: 75%; font-size: 40px; }
+.calc .row.hl b { color: var(--ember); }
+.tag { display: inline-block; font-size: 24px; padding: 4px 12px; border-radius: 4px; background: var(--paper); color: var(--ink2); margin-bottom: 18px; }
+.mini { font-size: 26px; }
+.mini td, .mini th { padding: 8px 10px; }
+.chartcap { font-size: 24px; color: var(--ink2); margin: 6px 0 0; }
 </style>
 </head>
 <body>
@@ -56,49 +73,76 @@ ul.plain { padding-left: 34px; display: grid; gap: 18px; }
   <div>
     <p class="muted" style="font-size:30px;margin-bottom:40px">NASA Space Apps Challenge 2026 · Harmonization of MODIS and VIIRS Hot Spots · challenge by CONAE (Argentina)</p>
     <h1>Burn Calendar</h1>
-    <p style="font-size:46px;max-width:1350px;margin-top:36px;line-height:1.3">One consistent record of 25 years of satellite fire hotspots — MODIS history and VIIRS continuity, harmonized into a calendar for any area you choose.</p>
+    <p style="font-size:46px;max-width:1350px;margin-top:36px;line-height:1.3">One consistent record of 25 years of satellite fire hotspots: MODIS history and VIIRS continuity, harmonized into a calendar for any area you choose.</p>
     <div class="ramp"><i style="background:#fbe9b7"></i><i style="background:#f8cc7a"></i><i style="background:#f2a24c"></i><i style="background:#e17330"></i><i style="background:#c24b1f"></i><i style="background:#92301a"></i><i style="background:#5c1e13"></i></div>
   </div>
-  <div class="foot"><span id="team">Argentina · November 2000 → October 2026</span><span>Data: NASA FIRMS (MODIS C6.1, VIIRS S-NPP 375 m)</span></div>
+  <div class="foot"><span>Argentina · November 2000 → October 2026</span><span>Data: NASA FIRMS (MODIS C6.1, VIIRS S-NPP 375 m)</span></div>
 </section>
 
-<!-- 2. Problem -->
+<!-- 2. Satellites, lifetimes, instruments -->
 <section class="slide">
-  <h2>Two sensors, one fire record that doesn’t add up</h2>
-  <div class="cols wide-left">
+  <h2 style="margin-bottom:16px">Two satellite families, different lifetimes, different eyes</h2>
+  <img src="en_timeline.svg" style="width:100%" alt="Timeline of Terra, Aqua, Suomi NPP and NOAA-20/21">
+  <div style="display:grid;grid-template-columns:1.05fr .75fr 1fr;gap:40px;align-items:center;margin-top:8px">
+    <table class="mini">
+      <tr><th></th><th style="text-align:left">MODIS</th><th style="text-align:left">VIIRS</th></tr>
+      <tr><td style="text-align:left">Pixel</td><td style="text-align:left">1 km</td><td style="text-align:left">375 m</td></tr>
+      <tr><td style="text-align:left">Small fires</td><td style="text-align:left">often missed</td><td style="text-align:left">detected</td></tr>
+      <tr><td style="text-align:left">At night</td><td style="text-align:left">weak</td><td style="text-align:left">much more sensitive</td></tr>
+    </table>
+    <img src="en_pixels.svg" style="width:100%" alt="One MODIS pixel holds about seven VIIRS pixels">
+    <p style="font-size:28px"><strong>Same fires, different counts.</strong> Paraná Delta, 15 August 2020, two minutes apart: MODIS logged <strong>116</strong> hotspots, VIIRS <strong>424</strong>.</p>
+  </div>
+  <div class="foot"><span>Burn Calendar</span><span>Mission dates of the data used (NASA FIRMS) · pixel sketch is illustrative</span></div>
+</section>
+
+<!-- 3. Overlap and the false jump -->
+<section class="slide">
+  <h2>While both flew, VIIRS always counted ~3× more</h2>
+  <div class="cols" style="gap:60px">
     <div>
-      <img src="chart_problem.svg" style="width:100%" alt="Annual hotspots in Argentina: naive MODIS-then-VIIRS counts jump in 2012; harmonized counts do not">
-      <div class="legend"><span><i style="background:#e3a07a"></i>Naive: MODIS until 2011, raw VIIRS after</span><span><i style="background:#1d2a2f"></i>Harmonized</span></div>
+      <img src="en_overlap.svg" style="width:100%" alt="Hotspots per year, MODIS vs VIIRS, 2012–2021">
+      <p class="chartcap"><span style="color:#8a979b">■</span> MODIS &nbsp; <span style="color:#1d2a2f">■</span> VIIRS &nbsp; <span style="color:#b23a1c;font-weight:700">2.9–3.5×</span> every year, 2012–2021 (2.7× by day, 6.7× by night)</p>
     </div>
-    <div style="display:grid;gap:34px">
-      <p>VIIRS has 375 m pixels against 1 km for MODIS, and different overpass times. In Argentina it reports <strong>3.2× as many hotspots</strong> for the same fires.</p>
-      <p>Joining the records as they are invents a fire boom in 2012: the count jumps from 73k to 169k.</p>
-      <p class="muted">MODIS on Terra and Aqua is being retired in 2026–27. Without harmonization, every future year loses its 25-year baseline.</p>
+    <div>
+      <img src="chart_problem.svg" style="width:100%" alt="Joining the records as they are invents a jump in 2012">
+      <p class="chartcap"><span style="color:#e3a07a">■</span> MODIS until 2011, raw VIIRS after: a false jump from 73k to 169k &nbsp; <span style="color:#1d2a2f">■</span> harmonized</p>
     </div>
   </div>
+  <p style="margin-top:34px">The gap is stable, so it comes from the instrument, not the fire, and it can be measured and corrected. It has to be: MODIS is shutting down, and from 2027 every year will be VIIRS-only.</p>
   <div class="foot"><span>Burn Calendar</span><span>Annual hotspots, Argentina, NASA FIRMS standard products</span></div>
 </section>
 
-<!-- 3. Method -->
+<!-- 4. What harmonizing means + worked example -->
 <section class="slide">
-  <h2>From two sensors to MODIS-equivalent hotspots</h2>
-  <ol class="steps">
-    <li><b class="n">1</b><div><strong>Clean</strong><span>MODIS confidence ≥ 30; VIIRS nominal or high. Keep only vegetation and land fires, dropping volcanoes, industrial sources and offshore detections (FIRMS “type” flag).</span></div></li>
-    <li><b class="n">2</b><div><strong>Put both on one grid</strong><span>Count hotspots in 0.1° cells by month, separately for day and night overpasses.</span></div></li>
-    <li><b class="n">3</b><div><strong>Learn conversion factors where both sensors overlap</strong><span>MODIS ÷ VIIRS for every 2° region and overpass over 2012–2021, before the end-of-mission orbit drift. Shrunk toward the national factor (day 0.37, night 0.15) where fires are few. Terra-only months of 2000–02 are scaled to Terra + Aqua the same way.</span></div></li>
-    <li><b class="n">4</b><div><strong>Join the eras</strong><span>MODIS observed until 2011, then VIIRS converted (2026 from near-real-time data). Days when a satellite was down are filled by scaling to the full month and flagged. The sensor of origin no longer matters.</span></div></li>
-  </ol>
-  <div class="foot"><span>Burn Calendar</span><span>Open pipeline: pipeline/harmonize.py</span></div>
+  <h2 style="margin-bottom:20px">Harmonizing: turn VIIRS counts into “what MODIS would have counted”</h2>
+  <div class="cols">
+    <div style="display:grid;gap:26px">
+      <div class="formula" style="font-size:36px">VIIRS hotspots × factor = <strong>MODIS-equivalent hotspots</strong>
+        <small>The factor is learned where both satellites overlap (2012–2021), for every 2° region and for day and night passes. It works like converting °F to °C before comparing temperatures.</small></div>
+      <p style="font-size:28px" class="muted">Then MODIS observed (2000–2011) and VIIRS converted (2012 →) join into one series. The sensor of origin no longer matters.</p>
+    </div>
+    <div class="calc" style="font-size:30px">
+      <span class="tag">Worked example · Paraná Delta region, August 2020</span>
+      <div class="row"><span>Factor learned: day 8,529 ÷ 28,248</span><b>0.30</b></div>
+      <div class="row"><span>Factor learned: night 1,219 ÷ 8,390</span><b>0.145</b></div>
+      <div class="row"><span>5,531 day × 0.30 + 2,128 night × 0.145</span><b>1,983</b></div>
+      <div class="row hl"><span>MODIS actually counted</span><b>1,685</b></div>
+      <div class="row"><span>Raw VIIRS, unconverted</span><b>7,659</b></div>
+      <p style="font-size:26px;margin-top:12px">Converted: 18% off. Unconverted: 355% off.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Burn Calendar</span><span>Delta region: 2° block, −34° to −32° latitude, −60° to −58° longitude</span></div>
 </section>
 
-<!-- 4. Validation -->
+<!-- 5. Validation -->
 <section class="slide">
   <h2>Tested three ways, including against CONAE</h2>
   <div class="cols">
     <div>
-      <p class="muted">Monthly error when predicting a hidden year of MODIS from VIIRS</p>
+      <p class="muted">Hide one year, learn the factors from the others, predict what MODIS counted</p>
       <div class="big"><span class="num from">225%</span><span class="arrow">→</span><span class="num">7.5%</span></div>
-      <p style="font-size:30px">National bias under 1 %. Converted VIIRS stays within ±10 % of MODIS every year from 2012 to 2025.</p>
+      <p style="font-size:30px">National monthly error, raw vs harmonized. Every converted number in the app also shows its 80% range.</p>
     </div>
     <table>
       <tr><th>Independent check</th><th>Harmonized</th><th>Raw VIIRS</th></tr>
@@ -107,43 +151,27 @@ ul.plain { padding-left: 34px; display: grid; gap: 18px; }
       <tr><td>Day / night VIIRS gain vs published 375 m behaviour</td><td colspan="2">2.7× day, 6.7× night: consistent</td></tr>
     </table>
   </div>
-  <div class="foot"><span>Burn Calendar</span><span>Leave-one-year-out cross-validation 2012–2021 · burned area: Global Fire Dashboard (CRU/UEA) · CONAE Catálogo de Focos de Calor</span></div>
+  <div class="foot"><span>Burn Calendar</span><span>Burned area: Global Fire Dashboard (CRU/UEA) · CONAE Catálogo de Focos de Calor · sensitivity analysis in the repository</span></div>
 </section>
 
-<!-- 5. The app -->
+<!-- 6. The tool + findings -->
 <section class="slide">
-  <h2>Pick an area and dates, read the calendar, download</h2>
-  <div class="cols wide-left">
-    <img class="shot" src="s_app.png" alt="Burn Calendar web app">
-    <ul class="plain" style="gap:14px">
-      <li>Draw an area or type coordinates</li>
-      <li>Years × months calendar, accessible colour ramp</li>
-      <li>Each month vs a normal month, with an 80% range</li>
-      <li>Switch harmonization off to see the false 2012 jump</li>
-      <li>Hide a year and test the conversion yourself</li>
-      <li>Hotspot CSV, monthly CSV, charts as PNG</li>
-    </ul>
-  </div>
-  <div class="foot"><span>Burn Calendar</span><span>Built with D3 and Leaflet</span></div>
-</section>
-
-<!-- 6. Findings -->
-<section class="slide">
-  <h2>The calendar recovers known disasters at a glance</h2>
+  <h2 style="margin-bottom:14px">Pick an area and dates: the calendar shows the fire history</h2>
+  <p style="font-size:28px;margin-bottom:22px" class="muted">Draw an area · years × months calendar · each month vs normal with an 80% range · switch harmonization off · hide a year and test it · CSV and PNG downloads</p>
   <div class="cols wide-left">
     <img class="shot" src="s_cal_delta.png" alt="Paraná Delta calendar compared with normal">
     <div class="facts">
-      <div class="fact"><div class="v">31×</div><div class="l">Paraná Delta, August 2020, against a normal August (2003–2022 median). The highest August since 2001.</div></div>
-      <div class="fact"><div class="v">24×</div><div class="l">Northern Andean Patagonia, 2015 (Cholila fire) against the median year</div></div>
-      <div class="fact"><div class="v">2.1×</div><div class="l">Corrientes wetlands, 2022 fires against the median year</div></div>
+      <div class="fact"><div class="v">31×</div><div class="l">Paraná Delta, August 2020, against a normal August. The highest since 2001.</div></div>
+      <div class="fact"><div class="v">24×</div><div class="l">Northern Andean Patagonia, 2015 (Cholila fire), against the median year</div></div>
+      <div class="fact"><div class="v">2.1×</div><div class="l">Corrientes wetlands, 2022 fires, against the median year</div></div>
     </div>
   </div>
-  <div class="foot"><span>Burn Calendar</span><span>Calendar mode “Compared with normal”: teal below, ember above the median month</span></div>
+  <div class="foot"><span>Burn Calendar</span><span>“Compared with normal” view: teal below, ember above the median month · hatched: could still be normal</span></div>
 </section>
 
 <!-- 7. Impact -->
 <section class="slide">
-  <h2>A baseline that survives the end of MODIS</h2>
+  <h2>A fire baseline that survives the end of MODIS</h2>
   <div class="cols">
     <ul class="plain">
       <li><strong>Emergency managers and fire brigades:</strong> see when an area usually burns and whether this month is unusual. August 2026 ran at 20% of a normal August nationwide, a drop NOAA-20 confirms</li>
@@ -155,10 +183,10 @@ ul.plain { padding-left: 34px; display: grid; gap: 18px; }
       <ul class="plain">
         <li>Add NOAA-20 and NOAA-21 VIIRS</li>
         <li>Extend to all of South America</li>
-        <li>Automatic monthly update and alerts when an area runs above normal</li>
-        <li>Validate against burned-area maps</li>
+        <li>Monthly updates and alerts when an area runs above normal</li>
+        <li>Calibrate by ecoregion</li>
       </ul>
-      <p class="muted" style="margin-top:40px;font-size:28px" id="links">App: cucattigaston.github.io/burn-calendar/web/<br>Code: github.com/cucattigaston/burn-calendar</p>
+      <p class="muted" style="margin-top:40px;font-size:28px">App: cucattigaston.github.io/burn-calendar/web/<br>Code: github.com/cucattigaston/burn-calendar</p>
     </div>
   </div>
   <div class="foot"><span>Burn Calendar · NASA Space Apps 2026</span><span>Code written with assistance from an AI assistant (Claude, Anthropic)</span></div>
