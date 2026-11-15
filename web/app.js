@@ -176,7 +176,10 @@ function initMap() {
 
 function drawSelectionShape() {
   drawn.clearLayers();
-  if (state.sel.all) return;
+  if (state.sel.all) {   // back to the whole country
+    map.fitBounds([[-55.1, -73.6], [-21.7, -53.6]], { padding: [10, 10] });
+    return;
+  }
   L.polygon(state.sel.poly, { color: "#1d2a2f", weight: 2, fillOpacity: 0.04 }).addTo(drawn);
   map.fitBounds(L.polygon(state.sel.poly).getBounds(), { padding: [20, 20], maxZoom: 8 });
 }
