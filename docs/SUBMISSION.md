@@ -45,7 +45,7 @@ https://cucattigaston.github.io/burn-calendar/  (code: https://github.com/cucatt
   - hotspots per year.
 - **Downloads:**
   - the raw hotspots inside the area and dates (CSV);
-  - the harmonized monthly series (CSV, with source and ratio to normal);
+  - the harmonized monthly series (CSV, with source, ratio to normal and 80% ranges);
   - each chart (PNG).
 
 **How it works.** A Python pipeline (pandas) does the harmonization:
@@ -72,6 +72,11 @@ https://cucattigaston.github.io/burn-calendar/  (code: https://github.com/cucatt
 
 National bias is under 1%, and converted VIIRS stays within ±10% of observed MODIS each year from 2012 to
 2025.
+
+**Honest numbers.** Every converted value carries an 80% range learned from the same hide-one-year test.
+For example, an estimate of 100 hotspots in a month means 68 to 125. The calendar hatches months whose range
+reaches "normal", charts show whiskers, and the CSV includes the bounds. Users see how sure each number is,
+not just a number that looks exact.
 
 **Independent checks.**
 - **Burned area.** Against MODIS MCD64A1 burned area (2003–2021), hotspots per hectare change by 0.85× at

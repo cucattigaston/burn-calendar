@@ -150,6 +150,36 @@ function sourceOf(i) {
   return "";
 }
 
+/* ---- uncertainty: 80% ranges learned from leave-one-year-out validation ---- */
+function uncKind(i) {
+  const src = sourceOf(i);
+  return src.startsWith("VIIRS") ? "viirs" : src.startsWith("MODIS Terra,") ? "terra" : null;
+}
+function rangeFor(v, kind, period = "monthly") {
+  const U = state.meta.uncertainty;
+  if (!kind || !U) return [v, v];
+  const u = U[kind], e = u.edges;
+  if (v < e[0]) return [0, Math.max(v, u[`${period}_below_first_edge_abs_hi`])];
+  let k = 0; while (k < e.length - 1 && v >= e[k + 1]) k++;
+  return [v * u[period][k][0], v * u[period][k][1]];
+}
+const monthRange = (i) => rangeFor(state.series.harm[i], uncKind(i), "monthly");
+function yearRange(y) {
+  const s = state.series.harm, parts = { observed: 0, viirs: 0, terra: 0 };
+  for (let mo = 0; mo < 12; mo++) {
+    const i = mIndex(y, mo);
+    if (i < state.from || i > state.to || i < 0 || i >= state.data.nMonths) continue;
+    parts[uncKind(i) || "observed"] += s[i];
+  }
+  let lo = parts.observed, hi = parts.observed;
+  for (const k of ["viirs", "terra"]) if (parts[k] > 0) { const [a, b] = rangeFor(parts[k], k, "annual"); lo += a; hi += b; }
+  return [lo, hi];
+}
+const fmtRange = ([lo, hi]) => `${fmt(lo)}–${fmt(hi)}`;
+const fmtX = (r) => (r >= 10 ? Math.round(r) : r >= 1 ? r.toFixed(1) : r.toFixed(2));
+// "could be normal": the 80% range of the ratio reaches the normal band (0.8–1.25×) although the estimate is outside it
+const couldBeNormal = (v, nm, lo, hi) => nm > 0 && (v / nm >= 1.25 || v / nm < 0.8) && lo / nm < 1.25 && hi / nm >= 0.8;
+
 /* ------------------------------------------------------------------ map */
 let map, drawn, overlay;
 
@@ -278,6 +308,8 @@ function renderCalendar(norm) {
     .attr("width", W).attr("height", H).attr("role", "img")
     .attr("aria-label", `Calendar of monthly hotspots for ${state.sel.name}, ${y0} to ${y1}`);
   svg.append("rect").attr("width", W).attr("height", H).attr("fill", "#f7f8f5");
+  svg.append("defs").html('<pattern id="unsure" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">' +
+    '<line x1="0" y1="0" x2="0" y2="5" stroke="#f7f8f5" stroke-width="2.2"/></pattern>');
 
   svg.selectAll("text.mh").data(MONTHS).join("text").attr("class", "mh")
     .attr("x", (d, i) => left + i * (cw + gap) + cw / 2).attr("y", 14).attr("text-anchor", "middle")
@@ -303,17 +335,25 @@ function renderCalendar(norm) {
       }
       const v = s[i], nm = norm[mo].median, ratio = nm > 0 ? v / nm : (v > 0 ? 99 : 1);
       const outage = state.meta.gaps && state.meta.gaps[mValue(i)];
+      const kind = uncKind(i), [lo, hi] = monthRange(i);
+      const unsure = state.mode !== "count" && kind && couldBeNormal(v, nm, lo, hi);
       const fill = state.mode === "count" ? (v < 0.5 ? ZERO : RAMP[classOf(v, br)]) : DIV[divClass(ratio)];
       svg.append("rect").attr("class", "cell" + (state.focus === i ? " sel" : ""))
         .attr("x", x).attr("y", yy).attr("width", cw).attr("height", ch).attr("rx", 2)
         .attr("fill", fill).attr("tabindex", 0)
         .attr("aria-label", `${mLabel(i)}: ${fmt(v)} hotspots`)
-        .on("mousemove", (ev) => showTip(ev, `<b>${mLabel(i)}</b><br>${fmt(v)} hotspots<br>` +
-            (nm > 0 ? `${fmtPct(ratio)} vs normal (${fmt(nm)})` : "normal month: no hotspots") +
+        .on("mousemove", (ev) => showTip(ev, `<b>${mLabel(i)}</b><br>${fmt(v)} hotspots` +
+            (kind ? `, likely ${fmtRange([lo, hi])} (80% range)` : " (observed by MODIS)") + "<br>" +
+            (nm > 0 ? `${fmtPct(ratio)} vs normal (${fmt(nm)})` + (kind ? `, likely ${fmtPct(lo / nm)} to ${fmtPct(hi / nm)}` : "") : "normal month: no hotspots") +
+            (unsure ? "<br>Could still be a normal month given the uncertainty" : "") +
             (outage ? `<br>${outage.missing_days} of ${outage.days} days without ${outage.sensor} data; value scaled to the full month` : "")))
         .on("mouseleave", hideTip)
         .on("click", () => { state.focus = i; renderAll(false); })
         .on("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); state.focus = i; renderAll(false); } });
+      if (unsure) {
+        svg.append("rect").attr("x", x).attr("y", yy).attr("width", cw).attr("height", ch).attr("rx", 2)
+          .attr("fill", "url(#unsure)").attr("pointer-events", "none");
+      }
       if (outage && outage.missing_days >= 3) {
         svg.append("circle").attr("cx", x + cw - 5).attr("cy", yy + 5).attr("r", 2.5)
           .attr("fill", "#fff").attr("stroke", "#1d2a2f").attr("stroke-width", 1).attr("pointer-events", "none");
@@ -352,7 +392,8 @@ function renderCalendar(norm) {
       RAMP.map((c, k) => `<span class="sw"><i style="background:${c}"></i>${labels[k]}</span>`).join("");
   } else {
     lg.innerHTML = `<span>Compared with the normal month (${state.baseFrom}–${state.baseTo} median):</span>` +
-      DIV.map((c, k) => `<span class="sw"><i style="background:${c}"></i>${DIV_LABELS[k]}</span>`).join("");
+      DIV.map((c, k) => `<span class="sw"><i style="background:${c}"></i>${DIV_LABELS[k]}</span>`).join("") +
+      `<span class="sw"><i style="background:repeating-linear-gradient(45deg,#e07d4c 0 3px,#f7f8f5 3px 5px)"></i>could still be normal (80% range)</span>`;
   }
   lg.innerHTML += `<span class="sw"><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="3" fill="#fff" stroke="#1d2a2f"/></svg>3+ days without satellite data (scaled)</span>` +
     `<span class="sw"><i style="background:#9aa5a8;width:4px"></i>MODIS observed</span>` +
@@ -378,10 +419,12 @@ function renderFigures(norm) {
       return i >= state.from && i <= state.to && i < state.data.nMonths ? s[i] : 0; }) }));
   const topY = yrs.reduce((a, b) => (b.v > a.v ? b : a), { y: "—", v: 0 });
   const cls = r === null ? "" : r >= 1.25 ? "up" : r <= 0.8 ? "down" : "";
+  const fk = uncKind(focus), [flo, fhi] = monthRange(focus);
+  const rangeTxt = r !== null && fk ? `; likely ${fmtPct(flo / nm)} to ${fmtPct(fhi / nm)}` : "";
   document.getElementById("figures").innerHTML = `
     <div class="figure"><div class="v">${fmt(total)}</div><div class="l">hotspots, ${mLabel(state.from)} – ${mLabel(state.to)}</div></div>
     <div class="figure ${cls}"><div class="v">${r === null ? (s[focus] > 0 ? "New" : "—") : fmtPct(r)}</div>
-      <div class="l">${mLabel(focus)} vs a normal ${MONTHS_LONG[mMonth(focus)]} (${fmt(s[focus])} vs ${fmt(nm)})</div></div>
+      <div class="l">${mLabel(focus)} vs a normal ${MONTHS_LONG[mMonth(focus)]} (${fmt(s[focus])} vs ${fmt(nm)}${rangeTxt})</div></div>
     <div class="figure"><div class="v">${seasonTxt}</div><div class="l">usual fire season (months at least half as active as the peak)</div></div>
     <div class="figure"><div class="v">${topY.y}</div><div class="l">most active year (${fmt(topY.v)} hotspots)</div></div>`;
 }
@@ -405,16 +448,21 @@ function renderDetail(norm) {
     .filter((k) => k >= 0 && k < state.data.nMonths && k !== i).map((k) => s.harm[k]);
   const rank = same.filter((x) => x > v).length + 1;
   const firstY = d3.range(mYear(0), mYear(0) + 2).find((y) => mIndex(y, mo) >= 0);
-  const ratioTxt = nm > 0 ? `${(v / nm).toFixed(1)}× the normal ${MONTHS_LONG[mo]} (median ${fmt(nm)} in ${state.baseFrom}–${state.baseTo})`
-                          : `in a month that normally has no hotspots here`;
+  const kind = uncKind(i), [lo, hi] = monthRange(i);
+  const ratioTxt = nm > 0 ? `${fmtX(v / nm)}× the normal ${MONTHS_LONG[mo]}` +
+      (kind ? ` (likely ${fmtX(lo / nm)}–${fmtX(hi / nm)}×)` : "") +
+      `; the normal is the ${state.baseFrom}–${state.baseTo} median of ${fmt(nm)}`
+    : `in a month that normally has no hotspots here`;
   const src = sourceOf(i);
   const gap = state.meta.gaps && state.meta.gaps[mValue(i)];
   const raw = src.startsWith("VIIRS") ? `VIIRS detected ${fmt(s.viirs[i])} hotspots` : `MODIS detected ${fmt(s.modis[i])} hotspots`;
   document.getElementById("detail").innerHTML =
-    `<p><strong>${mLabel(i)}: ${fmt(v)} hotspots</strong>, ${ratioTxt}. ` +
+    `<p><strong>${mLabel(i)}: ${fmt(v)} hotspots</strong>` +
+    (kind ? ` (80% range ${fmtRange([lo, hi])})` : "") + `, ${ratioTxt}. ` +
     `It ranks ${ordinal(rank)} of ${same.length + 1} ${MONTHS_LONG[mo]}s since ${firstY}. ` +
     `<span class="hint">Source: ${src} (${raw}).` +
     (gap ? ` ${gap.missing_days} of ${gap.days} days had no ${gap.sensor} data, so the month was scaled to its full length.` : "") +
+    (kind ? " The range comes from how well this conversion predicted held-out years." : " Observed MODIS months carry no conversion uncertainty.") +
     ` Click any month in the calendar to compare it.</span></p>`;
 }
 const ordinal = (n) => n + (["th", "st", "nd", "rd"][(n % 100 - 20) % 10] || ["th", "st", "nd", "rd"][n % 100] || "th");
@@ -423,7 +471,9 @@ function renderSeason(norm) {
   const s = state.series.harm, i = state.focus ?? lastFullMonth(), y = mYear(i);
   const W = 460, H = 220, m = { t: 14, r: 10, b: 28, l: 44 };
   const yv = d3.range(12).map((mo) => { const k = mIndex(y, mo); return k >= 0 && k < state.data.nMonths ? s[k] : null; });
-  const ymax = d3.max([...norm.map((d) => d.q75), ...yv.filter((v) => v !== null)]) || 1;
+  const yr = d3.range(12).map((mo) => { const k = mIndex(y, mo);
+    return k >= 0 && k < state.data.nMonths && uncKind(k) ? monthRange(k) : null; });
+  const ymax = d3.max([...norm.map((d) => d.q75), ...yv.filter((v) => v !== null), ...yr.filter(Boolean).map((r) => r[1])]) || 1;
   const x = d3.scaleBand().domain(d3.range(12)).range([m.l, W - m.r]).padding(0.25);
   const yS = d3.scaleLinear().domain([0, ymax]).nice().range([H - m.b, m.t]);
   const host = document.getElementById("season"); host.innerHTML = "";
@@ -440,10 +490,13 @@ function renderSeason(norm) {
   svg.selectAll("rect.bar").data(yv).join("rect").attr("x", (d, k) => x(k)).attr("width", x.bandwidth())
     .attr("y", (d) => yS(d ?? 0)).attr("height", (d) => yS(0) - yS(d ?? 0))
     .attr("fill", (d, k) => (d === null ? "none" : norm[k].median > 0 && d / norm[k].median >= 1.25 ? "#c24b1f" : "#4c5a60"));
+  yr.forEach((r, k) => { if (!r) return; const cx = x(k) + x.bandwidth() / 2;
+    svg.append("line").attr("x1", cx).attr("x2", cx).attr("y1", yS(r[0])).attr("y2", yS(r[1])).attr("stroke", "#1d2a2f").attr("stroke-width", 1.2);
+    for (const yy of r) svg.append("line").attr("x1", cx - 3).attr("x2", cx + 3).attr("y1", yS(yy)).attr("y2", yS(yy)).attr("stroke", "#1d2a2f").attr("stroke-width", 1.2); });
   svg.selectAll("line.med").data(norm).join("line").attr("x1", (d, k) => x(k) - 3).attr("x2", (d, k) => x(k) + x.bandwidth() + 3)
     .attr("y1", (d) => yS(d.median)).attr("y2", (d) => yS(d.median)).attr("stroke", "#1d2a2f").attr("stroke-width", 2);
   svg.append("text").attr("x", W - m.r).attr("y", m.t + 2).attr("text-anchor", "end").attr("font-size", 11).attr("fill", "#1d2a2f")
-    .text(`Bars: ${y} · line: normal (median) · grey: middle half of years`);
+    .text(`Bars: ${y} (whiskers: 80% range) · line: normal · grey: middle half of years`);
 }
 
 function renderAnnual() {
@@ -453,12 +506,12 @@ function renderAnnual() {
     let v = 0, full = true;
     for (let mo = 0; mo < 12; mo++) { const i = mIndex(y, mo);
       if (i < state.from || i > state.to || i >= state.data.nMonths || i < 0) { full = false; continue; } v += s[i]; }
-    return { y, v, full };
+    return { y, v, full, r: yearRange(y) };
   });
   const med = d3.median(data.filter((d) => d.full && d.y >= state.baseFrom && d.y <= state.baseTo), (d) => d.v) || 0;
   const W = 420, H = 220, m = { t: 14, r: 10, b: 28, l: 44 };
   const x = d3.scaleBand().domain(data.map((d) => d.y)).range([m.l, W - m.r]).padding(0.15);
-  const yS = d3.scaleLinear().domain([0, d3.max(data, (d) => d.v) || 1]).nice().range([H - m.b, m.t]);
+  const yS = d3.scaleLinear().domain([0, d3.max(data, (d) => Math.max(d.v, d.r[1])) || 1]).nice().range([H - m.b, m.t]);
   const host = document.getElementById("annual"); host.innerHTML = "";
   const svg = d3.select(host).append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("role", "img")
     .attr("aria-label", "Hotspots per year");
@@ -472,10 +525,14 @@ function renderAnnual() {
     .attr("fill", (d) => (!d.full ? "#b9c0bd" : med && d.v >= 1.25 * med ? "#c24b1f" : "#4c5a60"))
     .style("cursor", "pointer")
     .on("mousemove", (ev, d) => showTip(ev, `<b>${d.y}</b><br>${fmt(d.v)} hotspots${d.full ? "" : " (partial year)"}` +
+      (d.r[1] > d.r[0] ? `<br>likely ${fmtRange(d.r)} (80% range)` : "") +
       (med ? `<br>${fmtPct(d.v / med)} vs median year` : "")))
     .on("mouseleave", hideTip)
     .on("click", (ev, d) => { const mo = state.focus !== null ? mMonth(state.focus) : 8;
       const i = mIndex(d.y, mo); if (i >= 0 && i < state.data.nMonths) { state.focus = i; renderAll(false); } });
+  data.forEach((d) => { if (!(d.r[1] > d.r[0])) return; const cx = x(d.y) + x.bandwidth() / 2;
+    svg.append("line").attr("x1", cx).attr("x2", cx).attr("y1", yS(d.r[0])).attr("y2", yS(d.r[1]))
+      .attr("stroke", "#1d2a2f").attr("stroke-width", 1).attr("pointer-events", "none"); });
   if (med) {
     svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", yS(med)).attr("y2", yS(med))
       .attr("stroke", "#1d2a2f").attr("stroke-dasharray", "4 3");
@@ -559,11 +616,13 @@ const slug = () => state.sel.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").repl
 
 function downloadMonthly() {
   const s = state.series, norm = normals();
-  const rows = ["month,harmonized_hotspots_modis_equivalent,modis_observed,viirs_observed,source,normal_median,ratio_to_normal"];
+  const rows = ["month,harmonized_hotspots_modis_equivalent,harmonized_low_80,harmonized_high_80,modis_observed,viirs_observed,source,normal_median,ratio_to_normal,ratio_low_80,ratio_high_80"];
   for (let i = state.from; i <= state.to && i < state.data.nMonths; i++) {
     const nm = norm[mMonth(i)].median;
-    rows.push([mValue(i), s.harm[i].toFixed(1), Math.round(s.modis[i]), Math.round(s.viirs[i]),
-      `"${sourceOf(i)}"`, nm.toFixed(1), nm > 0 ? (s.harm[i] / nm).toFixed(3) : ""].join(","));
+    const [lo, hi] = monthRange(i);
+    rows.push([mValue(i), s.harm[i].toFixed(1), lo.toFixed(1), hi.toFixed(1), Math.round(s.modis[i]), Math.round(s.viirs[i]),
+      `"${sourceOf(i)}"`, nm.toFixed(1), nm > 0 ? (s.harm[i] / nm).toFixed(3) : "",
+      nm > 0 ? (lo / nm).toFixed(3) : "", nm > 0 ? (hi / nm).toFixed(3) : ""].join(","));
   }
   saveBlob(new Blob([rows.join("\n")], { type: "text/csv" }), `burn-calendar_${slug()}_${mValue(state.from)}_${mValue(state.to)}.csv`);
 }

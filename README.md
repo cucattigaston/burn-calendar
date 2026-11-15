@@ -31,7 +31,7 @@ current month compares with a normal one.
   - hotspots per year.
 - **Download:**
   - the raw hotspots inside your area and dates (CSV, both sensors);
-  - the harmonized monthly series (CSV, with source and ratio to normal);
+  - the harmonized monthly series (CSV, with source, ratio to normal and 80% ranges);
   - each chart (PNG).
 
 ## The harmonization
@@ -79,6 +79,32 @@ shows the weighted absolute error of monthly counts:
 
 National bias after harmonization is below 1 %. Year by year, converted VIIRS stays within about ±10 % of
 observed MODIS from 2012 to 2025 (`reports/yearly_sensor_comparison.csv`), with no jump at the switch.
+
+**Uncertainty ranges.** Every converted number in the app comes with an 80% range, which is expected to
+contain the true MODIS-equivalent value 8 times out of 10. The ranges come from the same leave-one-year-out
+test. For each held-out year we compared what MODIS really counted with what the conversion predicted, at
+five area sizes (0.1°, 0.5°, 1°, 2° and the whole country), for monthly values and for annual totals. The
+pairs are pooled and binned by the size of the estimate, and the 10th–90th percentiles of observed ÷
+estimated are taken in each bin. Ranges never widen as values grow.
+
+| Monthly estimate | 80% range |
+|---|---|
+| 10 hotspots | 4–16 |
+| 100 hotspots | 68–125 |
+| 1,000 hotspots | 732–1,149 |
+
+The Terra-only months (2000–02) get their own ranges from a leave-one-year-out test of the Terra → Terra +
+Aqua scaling over 2003–2011. Months observed directly by MODIS carry no conversion uncertainty.
+
+In the app:
+- tooltips, the month detail and the headline figure show the range;
+- the seasonal and annual charts draw it as whiskers;
+- the monthly CSV adds `harmonized_low_80`, `harmonized_high_80`, `ratio_low_80` and `ratio_high_80`;
+- in the *Compared with normal* view, a month is hatched when its range reaches the normal band (0.8–1.25×),
+  meaning it could still be a normal month.
+
+The ranges do not include sampling noise in the normal (median) itself, nor errors from the outage-day
+scaling.
 
 **Independent check against burned area.** If harmonization works, the number of hotspots per hectare
 burned should not jump when the record switches from MODIS to VIIRS. We compared monthly hotspots with

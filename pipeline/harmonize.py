@@ -203,7 +203,63 @@ def validate(mod_c, vii_c, years):
 
 
 # --------------------------------------------------------------------------- #
-# 6. Exports for the web app
+# 5b. Uncertainty: empirical 80% ranges from leave-one-year-out predictions
+# --------------------------------------------------------------------------- #
+UNC_EDGES = [0.5, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+UNC_SCALES = {"0.1°": 1, "0.5°": 5, "1°": 10, "2°": 20, "national": None}
+
+
+def loyo_pairs(target_c, source_c, keys, alpha, split_dn, years):
+    """Cell × month observed target vs predicted-from-source, each year predicted by a model
+    fitted on the other years. Day and night are summed after prediction."""
+    out = []
+    for y in years:
+        model = fit_ratio(target_c[target_c.month.dt.year != y], source_c[source_c.month.dt.year != y],
+                          keys, alpha, split_dn)
+        te_s = source_c[source_c.month.dt.year == y]
+        pred = te_s.assign(pred=apply_ratio(model, te_s)).groupby(["cy", "cx", "month"]).pred.sum()
+        obs = target_c[target_c.month.dt.year == y].groupby(["cy", "cx", "month"]).n.sum().rename("obs")
+        out.append(pd.concat([obs, pred], axis=1).fillna(0).reset_index())
+    return pd.concat(out, ignore_index=True)
+
+
+def interval_table(pairs, level=0.8):
+    """Quantiles of observed/predicted by size of the predicted value, pooled over area sizes
+    from one 0.1° cell to the whole country, for monthly values and for annual totals."""
+    lo_q, hi_q = (1 - level) / 2, 1 - (1 - level) / 2
+    res = {"level": level, "edges": UNC_EDGES}
+    for period in ("monthly", "annual"):
+        rows = []
+        for name, f in UNC_SCALES.items():
+            p = pairs.copy()
+            p["t"] = p.month if period == "monthly" else p.month.dt.year
+            if f is None:
+                g = p.groupby("t")[["obs", "pred"]].sum()
+            else:
+                p["gy"], p["gx"] = p.cy // f, p.cx // f
+                g = p.groupby(["gy", "gx", "t"])[["obs", "pred"]].sum()
+            rows.append(g[(g.obs > 0) | (g.pred > 0)])
+        allp = pd.concat(rows)
+        bins, cover = [], []
+        tiny = allp[allp.pred < UNC_EDGES[0]]
+        # below the first edge the value is "about zero": give an absolute upper bound
+        res[f"{period}_below_first_edge_abs_hi"] = float(np.quantile(tiny.obs, hi_q)) if len(tiny) else 1.0
+        for a, b in zip(UNC_EDGES, UNC_EDGES[1:] + [np.inf]):
+            sel = allp[(allp.pred >= a) & (allp.pred < b)]
+            if len(sel) < 30:          # too few cases: reuse the previous bin
+                bins.append(bins[-1] if bins else [0.5, 1.5, 0])
+                continue
+            r = sel.obs / sel.pred
+            lo, hi = float(np.quantile(r, lo_q)), float(np.quantile(r, hi_q))
+            bins.append([round(lo, 3), round(hi, 3), int(len(sel))])
+            cover.append(((r >= lo) & (r <= hi)).mean())
+        # widths must not grow with the value (more hotspots → relatively less noise)
+        for i in range(1, len(bins)):
+            lo, hi, n = bins[i]
+            bins[i] = [round(max(lo, bins[i - 1][0]), 3), round(min(hi, bins[i - 1][1]), 3), n]
+        res[period] = bins
+        res[f"{period}_n_pairs"] = int(len(allp))
+    return res
 # --------------------------------------------------------------------------- #
 def write_grid_bin(path, cells, months, layers):
     """
@@ -330,6 +386,17 @@ def main():
     nat_k = {str(k): round(float(v), 4) for k, v in model["national"].items()}
     log(f"   national VIIRS→MODIS factor: {nat_k}")
 
+    log("5b) Uncertainty ranges from leave-one-year-out predictions")
+    unc = {"viirs": interval_table(loyo_pairs(cal_m, cal_v, keys, alpha_v, dn, yrs))}
+    ta_c = mod_sat[mod_sat.month.dt.year.between(2003, 2011)].groupby(
+        ["cy", "cx", "ry", "rx", "month", "dn"]).n.sum().reset_index()
+    te_c = mod_sat[mod_sat.month.dt.year.between(2003, 2011) & (mod_sat.sat == "Terra")].groupby(
+        ["cy", "cx", "ry", "rx", "month", "dn"]).n.sum().reset_index()
+    unc["terra"] = interval_table(loyo_pairs(ta_c, te_c, ["ry", "rx"], 300, True, list(range(2003, 2012))))
+    for k, u in unc.items():
+        m = {e: b[:2] for e, b in zip(UNC_EDGES, u["monthly"])}
+        log(f"   {k}: monthly 80% range of observed/estimated at 10 → {m[10]}, 100 → {m[100]}, 1000 → {m[1000]}")
+
     # Post-calibration check: does MODIS drift away from VIIRS-equivalent after 2021?
     yearly = pd.DataFrame({
         "modis_observed": mod_c.groupby(mod_c.month.dt.year).n.sum(),
@@ -398,6 +465,7 @@ def main():
                "source": "VIIRS S-NPP near-real-time, converted to MODIS-equivalent"}] if nrt_from else []),
         "method": best,
         "gaps": gaps,
+        "uncertainty": unc,
         "national_factors": {"viirs_to_modis": nat_k,
                              "terra_to_terra_aqua": {str(k): round(float(v), 4) for k, v in nat_terra.k.items()}},
         "validation": {sc: {m: r for m, r in res.items()} for sc, res in val["scales"].items()},
