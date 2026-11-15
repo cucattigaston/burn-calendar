@@ -2,13 +2,13 @@
   "source": "MODIS MCD64A1 c6.1 burned area, Argentina national monthly totals, Global Fire Dashboard (Climatic Research Unit, UEA), 2001-01..2023-06",
   "break_at_2012": {
     "harmonized": {
-      "jump_factor": 0.9,
+      "jump_factor": 0.91,
       "jump_95ci": [
-        0.84,
-        0.97
+        0.85,
+        0.99
       ],
-      "slope_log_ba": 0.69,
-      "r2": 0.909,
+      "slope_log_ba": 0.695,
+      "r2": 0.906,
       "n_months": 270
     },
     "naive (raw VIIRS after 2011)": {
@@ -35,12 +35,12 @@
   "break_at_2012_window_2003_2021": {
     "note": "Terra+Aqua complete and before end-of-mission orbit drift",
     "harmonized": {
-      "jump_factor": 0.85,
+      "jump_factor": 0.86,
       "jump_95ci": [
         0.79,
         0.92
       ],
-      "slope_log_ba": 0.682,
+      "slope_log_ba": 0.683,
       "r2": 0.918,
       "n_months": 228
     },
@@ -66,98 +66,98 @@
     }
   },
   "log_correlation_with_burned_area": {
-    "harmonized, 2001-2011": 0.894,
+    "harmonized, 2001-2011": 0.893,
     "harmonized, 2012-2023": 0.888,
     "naive, 2012-2023": 0.889
   },
   "annual_ratio_relative_to_2001_2011": {
     "2001": {
-      "harmonized": 0.6,
+      "harmonized": 0.596,
       "naive": 0.212
     },
     "2002": {
-      "harmonized": 0.769,
+      "harmonized": 0.766,
       "naive": 0.589
     },
     "2003": {
       "harmonized": 0.872,
-      "naive": 0.871
+      "naive": 0.872
     },
     "2004": {
-      "harmonized": 1.036,
-      "naive": 1.036
+      "harmonized": 1.037,
+      "naive": 1.037
     },
     "2005": {
-      "harmonized": 1.002,
-      "naive": 1.001
+      "harmonized": 1.003,
+      "naive": 1.003
     },
     "2006": {
-      "harmonized": 1.108,
-      "naive": 1.108
+      "harmonized": 1.11,
+      "naive": 1.11
     },
     "2007": {
       "harmonized": 1.019,
-      "naive": 1.018
+      "naive": 1.019
     },
     "2008": {
       "harmonized": 1.023,
-      "naive": 1.021
+      "naive": 1.023
     },
     "2009": {
-      "harmonized": 1.229,
-      "naive": 1.228
+      "harmonized": 1.23,
+      "naive": 1.23
     },
     "2010": {
-      "harmonized": 1.201,
-      "naive": 1.201
+      "harmonized": 1.203,
+      "naive": 1.203
     },
     "2011": {
-      "harmonized": 1.141,
-      "naive": 1.14
+      "harmonized": 1.142,
+      "naive": 1.142
     },
     "2012": {
       "harmonized": 0.989,
-      "naive": 2.999
+      "naive": 3.003
     },
     "2013": {
-      "harmonized": 1.159,
-      "naive": 3.823
+      "harmonized": 1.161,
+      "naive": 3.827
     },
     "2014": {
-      "harmonized": 0.77,
-      "naive": 2.479
+      "harmonized": 0.771,
+      "naive": 2.482
     },
     "2015": {
-      "harmonized": 0.94,
-      "naive": 3.03
+      "harmonized": 0.941,
+      "naive": 3.034
     },
     "2016": {
-      "harmonized": 0.78,
-      "naive": 2.501
+      "harmonized": 0.781,
+      "naive": 2.504
     },
     "2017": {
-      "harmonized": 0.554,
-      "naive": 1.788
+      "harmonized": 0.555,
+      "naive": 1.79
     },
     "2018": {
-      "harmonized": 0.808,
-      "naive": 2.586
+      "harmonized": 0.809,
+      "naive": 2.59
     },
     "2019": {
-      "harmonized": 1.083,
-      "naive": 3.431
+      "harmonized": 1.084,
+      "naive": 3.435
     },
     "2020": {
-      "harmonized": 1.057,
-      "naive": 3.537
+      "harmonized": 1.059,
+      "naive": 3.541
     },
     "2021": {
-      "harmonized": 1.121,
-      "naive": 3.618
+      "harmonized": 1.122,
+      "naive": 3.623
     },
     "2022": {
-      "harmonized": 0.971,
-      "naive": 3.17
+      "harmonized": 0.972,
+      "naive": 3.174
     }
   },
   "mean_relative_ratio_2012_2022": {

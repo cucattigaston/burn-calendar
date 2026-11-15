@@ -677,7 +677,22 @@ function renderMethod() {
        <tr><td>MODIS observed throughout (reference)</td><td>${f(w["MODIS observed throughout (reference)"])}</td></tr>
        <tr class="best"><td>Harmonized (this tool)</td><td>${f(w.harmonized)}</td></tr>
        <tr><td>Raw VIIRS after 2011</td><td>${f(w["naive (raw VIIRS after 2011)"])}</td></tr>
-       <tr><td colspan="2" class="hint" style="text-align:left">The harmonized series changes exactly as MODIS itself does, so the switch adds no artificial jump. Raw VIIRS would show almost 3× more fire per hectare. Burned area: Global Fire Dashboard (CRU, UEA), national monthly totals.</td></tr>`;
+       <tr><td colspan="2" class="hint" style="text-align:left">The harmonized series changes practically as MODIS itself does, so the switch adds no artificial jump. Raw VIIRS would show almost 3× more fire per hectare. Burned area: Global Fire Dashboard (CRU, UEA), national monthly totals.</td></tr>`;
+  }).catch(() => {});
+  fetch("data/sensitivity.json").then((r) => (r.ok ? r.json() : null)).then((z) => {
+    if (!z) return;
+    const row = (label, v, used) => `<tr class="${used ? "best" : ""}"><td>${label}</td><td>${v.national}%</td><td>${v["regional (2°)"]}%</td><td>${v["local (0.5°)"]}%</td></tr>`;
+    const A = z.A_factor_by_year, d = A.trend_2012_2021_day, n = A.trend_2012_2021_night;
+    document.getElementById("validation-sens").innerHTML =
+      `<caption>Sensitivity: does the result depend on our choices? (same hide-one-year test)</caption>
+       <tr><th>Calibration region size</th><th>national</th><th>regional (2°)</th><th>local (0.5°)</th></tr>` +
+      Object.entries(z.B_region_size).map(([k, v]) => row(k, v, k.includes("used"))).join("") +
+      `<tr><th>Pull toward national factor</th><th></th><th></th><th></th></tr>` +
+      Object.entries(z.C_shrinkage_weight).sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+        .map(([k, v]) => row(`weight ${k}`, v, k.includes("used"))).join("") +
+      `<tr><td colspan="4" class="hint" style="text-align:left">Region size and pull weight change the error by about one point or less, so the conclusions do not hinge on them. ` +
+      `The factor drifts slightly over 2012–2021: ${d.slope_pct_per_year}% per year by day and ${n.slope_pct_per_year}% by night, likely from MODIS ageing. ` +
+      `A constant factor is therefore about 6% off at the ends of the period, which is inside the 80% ranges.</td></tr>`;
   }).catch(() => {});
   fetch("data/validation_conae.json").then((r) => (r.ok ? r.json() : null)).then((c) => {
     if (!c) return;

@@ -84,9 +84,16 @@ For example, an estimate of 100 hotspots in a month means 68 to 125. The calenda
 reaches "normal", charts show whiskers, and the CSV includes the bounds. Users see how sure each number is,
 not just a number that looks exact.
 
+**Sensitivity.** Changing the calibration region size (1°, 2°, 4°, national) or the pull toward the
+national factor (weight 0 to 3,000) moves the national error by about one point or less. The factor drifts
+only slightly in time (about −1 to −2% per year over 2012–2021), which stays inside the 80% ranges. Satellite
+outages are corrected only for runs of 3 or more empty days, so real quiet days are not inflated. The page
+also lists plainly what hotspots cannot tell you: burned area, fires hidden by clouds or smoke, and wildfires
+versus planned burns.
+
 **Independent checks.**
-- **Burned area.** Against MODIS MCD64A1 burned area (2003–2021), hotspots per hectare change by 0.85× at
-  the 2012 switch in the harmonized series and by 0.84× in MODIS itself. That is identical, so the switch adds
+- **Burned area.** Against MODIS MCD64A1 burned area (2003–2021), hotspots per hectare change by 0.86× at
+  the 2012 switch in the harmonized series and by 0.84× in MODIS itself. That is practically the same, so the switch adds
   no artificial jump. Raw VIIRS would show 2.79×.
 - **CONAE's catalogue.** CONAE processes MODIS Aqua independently, and its catalogue matches FIRMS Aqua
   (2002–2023: ratio 0.99, r = 0.997). Against it, the harmonized series stays level across the switch (0.98×

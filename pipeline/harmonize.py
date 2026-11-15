@@ -418,21 +418,35 @@ def main():
     h = h[(h.harmonized > 0) | (h.modis > 0) | (h.viirs > 0)].sort_values(["month", "cy", "cx"])
     months_all = pd.period_range(mod.month.min(), vii.month.max(), freq="M")
 
-    # Coverage: a day with no detection at all over Argentina means the satellite did not
-    # deliver data (e.g. Terra June 2001, S-NPP July–Aug 2022 and July 2024 safe-holds).
-    # The harmonized value of that month is scaled by days / days-with-data.
-    def missing_days(df, first_day):
+    # Coverage: a run of OUTAGE_MIN_RUN or more consecutive days with no detection at all over
+    # Argentina means the satellite did not deliver data (e.g. Terra June 2001, S-NPP July–Aug
+    # 2022 and July 2024 safe-holds). Isolated empty days are kept as real: in winter, and with
+    # Terra alone in 2000–02, a day without any fire is plausible. The harmonized value of an
+    # outage month is scaled by days / days-with-data.
+    OUTAGE_MIN_RUN = 3
+
+    def missing_days(df, first_day, min_run=OUTAGE_MIN_RUN):
         have = set(df.date.dt.normalize().unique())
         days = pd.date_range(first_day, df.date.max().normalize() + pd.offsets.MonthEnd(0), freq="D")
         miss = pd.Series([d not in have for d in days], index=days)
-        return miss.groupby(days.to_period("M")).agg(["sum", "size"])
-    gaps = {}
+        run_id = (miss != miss.shift()).cumsum()
+        run_len = miss.groupby(run_id).transform("size")
+        outage = miss & (run_len >= min_run)
+        isolated = miss & ~outage
+        out = outage.groupby(days.to_period("M")).agg(["sum", "size"])
+        out["isolated"] = isolated.groupby(days.to_period("M")).sum()
+        return out
+    gaps, isolated_kept = {}, 0
     for sensor, df, first, era in (("MODIS", mod, mod.date.min().normalize(), lambda m: m < VIIRS_START),
                                    ("VIIRS", vii, pd.Timestamp("2012-01-01"), lambda m: m >= VIIRS_START)):
         md = missing_days(df, first)
         for m, r in md.iterrows():
-            if r["sum"] > 0 and era(m):
+            if not era(m):
+                continue
+            isolated_kept += int(r["isolated"])
+            if r["sum"] > 0:
                 gaps[str(m)] = {"sensor": sensor, "missing_days": int(r["sum"]), "days": int(r["size"])}
+    log(f"   outage rule: runs of ≥{OUTAGE_MIN_RUN} empty days; {isolated_kept} isolated empty days kept as real")
     factor = h.month.astype(str).map(lambda m: gaps[m]["days"] / (gaps[m]["days"] - gaps[m]["missing_days"])
                                      if m in gaps and gaps[m]["days"] > gaps[m]["missing_days"] else 1.0)
     h["harmonized"] = h.harmonized * factor.values
@@ -465,6 +479,7 @@ def main():
                "source": "VIIRS S-NPP near-real-time, converted to MODIS-equivalent"}] if nrt_from else []),
         "method": best,
         "gaps": gaps,
+        "gaps_rule": "a month is scaled only for runs of 3 or more consecutive days with no detection over Argentina",
         "uncertainty": unc,
         "national_factors": {"viirs_to_modis": nat_k,
                              "terra_to_terra_aqua": {str(k): round(float(v), 4) for k, v in nat_terra.k.items()}},

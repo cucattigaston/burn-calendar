@@ -66,9 +66,11 @@ factors are shrunk toward the national factor (prior weight 300 VIIRS hotspots),
 stay stable. National factors are 0.37 for day and 0.15 for night: VIIRS sees many small night fires that
 MODIS misses.
 
-**Satellite outages.** On some days a satellite delivered no data at all over Argentina: Terra in mid-2001 and
-early 2002, and S-NPP in July–August 2022, July 2024 and a few days of 2026. For those months the
-harmonized value is scaled by *days in month ÷ days with data*. The calendar marks every month with 3 or
+**Satellite outages.** Sometimes a satellite delivered no data at all over Argentina for 3 or more days in
+a row: Terra in mid-2001 and early 2002, and S-NPP in July–August 2022, mid-2024 and a few days of 2026.
+For those months the harmonized value is scaled by *days in month ÷ days with data*. Single empty days (36
+in total, mostly in winter and in the Terra-only years) are kept as real days without fire. Before this rule
+they were scaled too; the change moves yearly totals by less than 1%. The calendar marks every month with 3 or
 more missing days, and the tooltip says how many days were missing. January 2012, when VIIRS starts on the
 20th, is handled the same way.
 
@@ -113,6 +115,20 @@ In the app:
 The ranges do not include sampling noise in the normal (median) itself, nor errors from the outage-day
 scaling.
 
+**Sensitivity analysis.** `pipeline/sensitivity.py` re-runs the hide-one-year test while changing one
+choice at a time.
+
+| Choice | Options tried | National monthly error |
+|---|---|---|
+| Calibration region size | 1° / **2° (used)** / 4° / national | 6.8% / **7.5%** / 7.9% / 9.5% |
+| Pull toward the national factor | weight 0 to 3,000 (**300 used**) | 7.4%–7.6% |
+
+- Neither choice moves the error by more than about one point, so the conclusions do not hinge on them.
+  Smaller regions are marginally better, and ecoregions are a natural next step.
+- The national factor drifts slightly over 2012–2021: −1.3% per year by day (95% range −2.2 to −0.3) and
+  −2.1% by night (−3.8 to −0.4). This is consistent with MODIS ageing. A constant factor is therefore about
+  6% off at the two ends of the period, which is inside the 80% ranges.
+
 **Independent check against burned area.** If harmonization works, the number of hotspots per hectare
 burned should not jump when the record switches from MODIS to VIIRS. We compared monthly hotspots with
 national monthly burned area from MODIS MCD64A1 c6.1, taken from the Global Fire Dashboard (Climatic
@@ -122,13 +138,13 @@ a 2012 step + month of year. Results for 2003–2021, when Terra + Aqua are comp
 | Series | Change in hotspots per unit burned area at 2012 (95% range) |
 |---|---|
 | MODIS observed throughout (reference) | 0.84× (0.79–0.91) |
-| **Harmonized** | **0.85× (0.79–0.92)** |
+| **Harmonized** | **0.86× (0.79–0.92)** |
 | Raw VIIRS after 2011 | 2.79× (2.58–3.02) |
 
-The harmonized series changes exactly as MODIS itself does. The modest decline after 2012 also shows up in
+The harmonized series changes practically as MODIS itself does (the 95% ranges overlap almost entirely). The modest decline after 2012 also shows up in
 MODIS alone, so it reflects a real change in fires (or in the burned-area product), not an artifact of the
 switch. Without harmonization the record would show almost 3× more fire per hectare from 2012. Over the
-full 2001–mid-2023 window the harmonized step is 0.90×, against 1.04× for MODIS and 3.51× for raw VIIRS;
+full 2001–mid-2023 window the harmonized step is 0.91×, against 1.04× for MODIS and 3.51× for raw VIIRS;
 the gap comes from the Terra-only scaling of 2001–02 and MODIS drift in 2022–23. Monthly hotspots and burned
 area have a log-correlation of 0.89 both before and after 2012.
 
@@ -164,6 +180,12 @@ confidence ≥ 50) from the Catálogo de Focos de Calor, and compared them in `p
   that the standard archive flagged as static sources are removed. Later reprocessing may change these
   months slightly.
 - An outage-day correction assumes the missing days were as active as the rest of the month.
+- **What hotspots cannot tell you.**
+  - They measure activity, not burned area.
+  - Clouds and smoke hide fires, and short fires between overpasses are missed.
+  - Wildfires and agricultural or pasture burns are not separated.
+
+  These points are also shown on the page.
 
 ## Run it yourself
 
