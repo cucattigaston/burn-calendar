@@ -7,7 +7,7 @@ burning-activity calendar for any area you choose. Emergency managers, firefight
 managers can see which months of the year usually burn, which years were exceptional, and how the
 current month compares with a normal one.
 
-**Live app:** [https://cucattigaston.github.io/burn-calendar/web/](https://cucattigaston.github.io/burn-calendar/web/) · **Demo slides:** [docs/demo/burn-calendar-demo.pdf](docs/demo/burn-calendar-demo.pdf) · **Coverage:** Argentina, November 2000 → October 2026
+**Live app:** [https://cucattigaston.github.io/burn-calendar/web/](https://cucattigaston.github.io/burn-calendar/web/) · **Demo slides:** [docs/demo/burn-calendar-demo.pdf](docs/demo/burn-calendar-demo.pdf) · **Coverage:** Argentina, November 2000 → October 2026 · **Guide:** [a tour of the page](#a-tour-of-the-page)
 
 ![Calendar screenshot](docs/screenshot.png)
 
@@ -40,6 +40,48 @@ current month compares with a normal one.
   - the raw hotspots inside your area and dates (CSV, both sensors);
   - the harmonized monthly series (CSV, with source, ratio to normal and 80% ranges);
   - each chart (PNG).
+
+## A tour of the page
+
+The page has three parts: the controls on the left, the results on the right, and the method section at
+the bottom. Everything on the right updates as soon as you change a control.
+
+### 1. Area and dates (left panel)
+
+| Part | What it does |
+|---|---|
+| **Map** | Shows where the hotspots are for the chosen dates, coloured with the same ember ramp as the calendar (darker means more hotspots). Use the rectangle or polygon tools at the top left of the map to draw your own area. The bin icon clears it and returns to all of Argentina. |
+| **Example areas** | Ready-made areas with well-known fire histories: all of Argentina, the Paraná River Delta, the Córdoba hills, the Dry Chaco, Northern Andean Patagonia, the Corrientes wetlands (Iberá) and the La Pampa caldén forest. |
+| **Bounding box** | Type north, south, west and east limits in decimal degrees and press *Use these coordinates*. Drawing or choosing an area fills these boxes too. |
+| **Date range** | First and last month to show, from November 2000 to October 2026. Totals, the calendar, the map and the downloads all use this range. |
+| **Series shown** | Which numbers you see. *Harmonized* (the default) shows everything as MODIS-equivalent hotspots. *Without harmonization* joins MODIS until 2011 with raw VIIRS from 2012, so you can see the false jump that harmonization removes. *MODIS only* and *VIIRS only* show each sensor's raw counts. |
+| **“Normal” is the median of** | The years used to define a normal month. By default it is 2003–2022: for each calendar month, the median of those years. The median is used instead of the mean so that a few catastrophic years do not distort “normal”. |
+| **Download hotspots (CSV)** | Every hotspot detected inside your area and dates by both sensors: latitude, longitude, date, time, instrument, satellite, day or night, confidence and fire radiative power. |
+| **Download monthly series (CSV)** | One row per month: the harmonized value, its 80% range, the raw MODIS and VIIRS counts, where the value comes from (MODIS observed or VIIRS converted), the normal for that month, and the ratio to normal with its 80% range. |
+
+### 2. Results (right panel)
+
+| Part | What it does |
+|---|---|
+| **Area name and size** | The area you chose, with its limits and how many 0.1° grid cells it covers. |
+| **Series note** | Appears only when harmonization is switched off, as a reminder that the numbers you see are raw counts. |
+| **Key figures** | Four numbers: total hotspots in the date range; the latest month (or the one you clicked) compared with a normal month of the same name, with its likely range; the usual fire season (months at least half as active as the peak month); and the most active year. |
+| **Burning activity calendar** | The core of the tool. Years run down the rows and months across the columns, so each square is one month. *Hotspots* colours each month by its count. *Compared with normal* colours it by its ratio to the normal month: teal for below normal, ember for above. Hatched squares could still be normal once the 80% range is taken into account. A small white dot marks a month in which the satellite sent no data for 3 or more days in a row, so the month was scaled to its full length. The thin strip beside each year shows the source: observed MODIS or converted VIIRS. The bars on the right give each year's total. Click any square to select that month. |
+| **Month detail** | A sentence about the selected month: its count and 80% range, how it compares with the normal month, its rank among all months of that name in the record, and its source, with the raw count the satellite actually detected. |
+| **Selected year against the normal year** | One bar per month of the selected year, in ember when the month is at least 1.25× its normal, with whiskers for the 80% range. The black line is the normal month and the grey band covers the middle half of all years. |
+| **Hotspots per year** | Yearly totals with whiskers for the 80% range. Ember bars are years at least 1.25× the median year, which is the dashed line; grey bars are years only partly inside the date range. Click a bar to select that year. |
+| **Most active months** | The eight months with the most hotspots in the date range. |
+| **Test it yourself: hide a year** | Pick a year from 2012 to 2021, when both satellites flew. The page hides that year, learns how many MODIS hotspots one VIIRS hotspot is worth in your area from the other years, and predicts the hidden year from VIIRS alone. The chart compares the prediction with what MODIS actually counted and with raw VIIRS, and the panel beside it gives the errors. It is a simplified version of the full validation: one factor per area, with day and night together. |
+| **Save PNG** | Each chart has a button that saves it as an image. |
+
+### 3. How the two sensors become one record (bottom)
+
+| Part | What it does |
+|---|---|
+| **Method text** | A plain-language explanation of the harmonization, the outage correction and the 80% ranges. |
+| **What hotspots can and cannot tell you** | The limits of the data: hotspots show fire activity, not burned area; clouds, smoke and timing between passes hide fires; wildfires and planned burns are not separated; small areas are noisy; and the most recent months are provisional. |
+| **Where each month comes from** | The four periods of the record and the source of each. |
+| **Validation tables** | The hide-one-year error of each harmonization method at national, 2° and 0.5° scales; the burned-area check; the comparison with CONAE's hotspot catalogue; and the sensitivity of the result to the choices we made. The [harmonization section](#the-harmonization) below explains each of them. |
 
 ## The harmonization
 
