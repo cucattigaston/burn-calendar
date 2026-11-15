@@ -43,6 +43,12 @@ https://cucattigaston.github.io/burn-calendar/  (code: https://github.com/cucatt
   - a ranking of the busiest months;
   - a chart of the selected year against the median year and the interquartile range;
   - hotspots per year.
+- **See and test the harmonization:**
+  - a "Series shown" selector switches to *without harmonization*, MODIS only or VIIRS only, so the false
+    2012 jump is visible at once;
+  - a "Test it yourself: hide a year" panel learns the conversion for the user's area from the other overlap
+    years and predicts the hidden year. For all of Argentina in 2020, the prediction is +11% against what
+    MODIS counted; raw VIIRS is +253%.
 - **Downloads:**
   - the raw hotspots inside the area and dates (CSV);
   - the harmonized monthly series (CSV, with source, ratio to normal and 80% ranges);

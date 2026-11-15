@@ -29,6 +29,13 @@ current month compares with a normal one.
   - a ranking of the busiest months;
   - a chart of the selected year against the median year and the interquartile band;
   - hotspots per year.
+- **Switch the series** between harmonized (the default), *without harmonization* (MODIS until 2011, then raw
+  VIIRS), MODIS only and VIIRS only. The calendar, charts, figures and map all follow the choice, so the false
+  2012 jump appears as soon as harmonization is switched off.
+- **Test it yourself: hide a year.** Pick a year from 2012 to 2021. The app learns a MODIS ÷ VIIRS factor
+  for your area from the other overlap years and predicts the hidden year from VIIRS. It then plots that
+  prediction against what MODIS counted and against raw VIIRS, with the errors. This is a simplified version
+  of the pipeline's validation: one factor per area, day and night together.
 - **Download:**
   - the raw hotspots inside your area and dates (CSV, both sensors);
   - the harmonized monthly series (CSV, with source, ratio to normal and 80% ranges);

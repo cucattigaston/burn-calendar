@@ -31,6 +31,7 @@ const state = {
   from: null, to: null,          // month indices (inclusive)
   baseFrom: 2003, baseTo: 2022,
   mode: "count",
+  layer: "harmonized",           // harmonized | naive | modis | viirs
   focus: null,                   // selected month index
   series: null,
 };
@@ -75,8 +76,14 @@ async function loadData() {
   let nMonths = 0; for (let i = 0; i < n; i++) if (m[i] + 1 > nMonths) nMonths = m[i] + 1;
   const [ly, lm] = meta.last_month.split("-").map(Number);
   nMonths = Math.max(nMonths, (ly - firstYear) * 12 + lm - firstMonth + 1);
+  // months in which each sensor has data at all (national)
+  const cov = { modis: [1e9, -1], viirs: [1e9, -1] };
+  for (let i = 0; i < n; i++) {
+    if (L[1][i] > 0) { cov.modis[0] = Math.min(cov.modis[0], m[i]); cov.modis[1] = Math.max(cov.modis[1], m[i]); }
+    if (L[2][i] > 0) { cov.viirs[0] = Math.min(cov.viirs[0], m[i]); cov.viirs[1] = Math.max(cov.viirs[1], m[i]); }
+  }
   return {
-    n, cy, cx, m, harm: L[0], modis: L[1], viirs: L[2], rc,
+    n, cy, cx, m, harm: L[0], modis: L[1], viirs: L[2], rc, cov,
     ucy: Uint16Array.from(ucy), ucx: Uint16Array.from(ucx),
     firstYear, firstMonth, cell, nMonths,
   };
@@ -125,17 +132,35 @@ function computeSeries() {
     if (!mask[d.rc[i]]) continue;
     harm[d.m[i]] += d.harm[i]; modis[d.m[i]] += d.modis[i]; viirs[d.m[i]] += d.viirs[i];
   }
-  state.series = { harm, modis, viirs, mask, cells };
+  // "without harmonization": MODIS as counted until 2011, raw VIIRS from 2012
+  const vStart = mIndex(2012, 0), naive = new Float64Array(d.nMonths);
+  for (let k = 0; k < d.nMonths; k++) naive[k] = k < vStart ? modis[k] : viirs[k];
+  state.series = { harm, modis, viirs, naive, mask, cells };
 }
+
+/* the series currently shown, and whether its sensor had data in month i */
+const S = () => state.series[state.layer === "harmonized" ? "harm" : state.layer];
+function hasData(i) {
+  if (i < 0 || i >= state.data.nMonths) return false;
+  const c = state.data.cov;
+  if (state.layer === "modis") return i >= c.modis[0] && i <= c.modis[1];
+  if (state.layer === "viirs") return i >= c.viirs[0] && i <= c.viirs[1];
+  return true;
+}
+const LAYER_NOTES = {
+  naive: "Without harmonization: MODIS counts until 2011, then raw VIIRS counts from 2012. The jump in 2012 is the sensor change, not more fire. This is what the record looks like if the two sensors are simply joined.",
+  modis: "MODIS only: raw Terra + Aqua counts (Terra alone until mid-2002). MODIS data were loaded up to December 2025.",
+  viirs: "VIIRS only: raw S-NPP counts, from January 2012. VIIRS reports about 3 times more hotspots than MODIS for the same fires.",
+};
 
 /* normal = median of the same calendar month over the baseline years */
 function normals() {
-  const s = state.series.harm, out = [];
+  const s = S(), out = [];
   for (let mo = 0; mo < 12; mo++) {
     const vals = [];
     for (let y = state.baseFrom; y <= state.baseTo; y++) {
       const i = mIndex(y, mo);
-      if (i >= 0 && i < state.data.nMonths) vals.push(s[i]);
+      if (hasData(i)) vals.push(s[i]);
     }
     vals.sort((a, b) => a - b);
     out.push({ median: d3.quantileSorted(vals, 0.5) ?? 0, q25: d3.quantileSorted(vals, 0.25) ?? 0,
@@ -152,6 +177,7 @@ function sourceOf(i) {
 
 /* ---- uncertainty: 80% ranges learned from leave-one-year-out validation ---- */
 function uncKind(i) {
+  if (state.layer !== "harmonized") return null;      // raw counts: no conversion, no range
   const src = sourceOf(i);
   return src.startsWith("VIIRS") ? "viirs" : src.startsWith("MODIS Terra,") ? "terra" : null;
 }
@@ -163,12 +189,12 @@ function rangeFor(v, kind, period = "monthly") {
   let k = 0; while (k < e.length - 1 && v >= e[k + 1]) k++;
   return [v * u[period][k][0], v * u[period][k][1]];
 }
-const monthRange = (i) => rangeFor(state.series.harm[i], uncKind(i), "monthly");
+const monthRange = (i) => rangeFor(S()[i], uncKind(i), "monthly");
 function yearRange(y) {
-  const s = state.series.harm, parts = { observed: 0, viirs: 0, terra: 0 };
+  const s = S(), parts = { observed: 0, viirs: 0, terra: 0 };
   for (let mo = 0; mo < 12; mo++) {
     const i = mIndex(y, mo);
-    if (i < state.from || i > state.to || i < 0 || i >= state.data.nMonths) continue;
+    if (i < state.from || i > state.to || !hasData(i)) continue;
     parts[uncKind(i) || "observed"] += s[i];
   }
   let lo = parts.observed, hi = parts.observed;
@@ -225,7 +251,10 @@ function drawOverlay() {
   const south = minY * c - 90, north = (maxY + 1) * c - 90, west = minX * c - 180, east = (maxX + 1) * c - 180;
   const W = maxX - minX + 1, H = Math.round((maxY - minY + 1) * 1.6);
   const sum = new Float64Array(d.ucy.length);
-  for (let i = 0; i < d.n; i++) if (d.m[i] >= state.from && d.m[i] <= state.to) sum[d.rc[i]] += d.harm[i];
+  const vStart = mIndex(2012, 0);
+  const val = { harmonized: (i) => d.harm[i], modis: (i) => d.modis[i], viirs: (i) => d.viirs[i],
+                naive: (i) => (d.m[i] < vStart ? d.modis[i] : d.viirs[i]) }[state.layer];
+  for (let i = 0; i < d.n; i++) if (d.m[i] >= state.from && d.m[i] <= state.to) sum[d.rc[i]] += val(i);
   const grid = new Float64Array(W * (maxY - minY + 1));
   for (let u = 0; u < d.ucy.length; u++) grid[(d.ucy[u] - minY) * W + (d.ucx[u] - minX)] = sum[u];
   const nz = Array.from(sum).filter((v) => v > 0).sort((a, b) => a - b);
@@ -293,11 +322,11 @@ const classOf = (v, br) => { let k = 0; while (k < br.length && v > br[k]) k++; 
 const divClass = (r) => { let k = 0; while (k < DIV_BREAKS.length && r >= DIV_BREAKS[k]) k++; return k; };
 
 function renderCalendar(norm) {
-  const s = state.series.harm, host = document.getElementById("calendar");
+  const s = S(), host = document.getElementById("calendar");
   const y0 = mYear(state.from), y1 = mYear(state.to);
   const years = d3.range(y0, y1 + 1);
-  const inRange = (i) => i >= state.from && i <= state.to && i < state.data.nMonths && i >= 0;
-  const vals = []; for (let i = state.from; i <= state.to; i++) vals.push(s[i]);
+  const inRange = (i) => i >= state.from && i <= state.to && hasData(i);
+  const vals = []; for (let i = state.from; i <= state.to; i++) if (hasData(i)) vals.push(s[i]);
   const br = countBreaks(vals);
 
   const cw = 44, ch = years.length > 20 ? 18 : 22, left = 62, top = 22, gap = 2, right = 150;
@@ -397,32 +426,34 @@ function renderCalendar(norm) {
   }
   lg.innerHTML += `<span class="sw"><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="3" fill="#fff" stroke="#1d2a2f"/></svg>3+ days without satellite data (scaled)</span>` +
     `<span class="sw"><i style="background:#9aa5a8;width:4px"></i>MODIS observed</span>` +
-    `<span class="sw"><i style="background:#1d2a2f;width:4px"></i>VIIRS converted to MODIS-equivalent</span>`;
+    `<span class="sw"><i style="background:#1d2a2f;width:4px"></i>${state.layer === "harmonized" ? "VIIRS converted to MODIS-equivalent" : "VIIRS era (from 2012)"}</span>`;
 }
 
 function lastFullMonth() {
-  const s = state.series.harm;
   let i = Math.min(state.to, state.data.nMonths - 1);
+  while (i > state.from && !hasData(i)) i--;
   return i;
 }
 
 function renderFigures(norm) {
-  const s = state.series.harm;
-  const total = d3.sum(d3.range(state.from, state.to + 1), (i) => s[i]);
-  const focus = state.focus ?? lastFullMonth();
+  const s = S();
+  const total = d3.sum(d3.range(state.from, state.to + 1), (i) => (hasData(i) ? s[i] : 0));
+  const withData = d3.range(state.from, state.to + 1).filter(hasData);
+  const pFrom = withData.length ? withData[0] : state.from, pTo = withData.length ? withData[withData.length - 1] : state.to;
+  const focus = state.focus !== null && hasData(state.focus) ? state.focus : lastFullMonth();
   const nm = norm[mMonth(focus)].median, r = nm > 0 ? s[focus] / nm : null;
   const maxMed = d3.max(norm, (d) => d.median) || 0;
   const season = norm.map((d, k) => (d.median >= maxMed * 0.5 && maxMed > 0 ? k : -1)).filter((k) => k >= 0);
   const seasonTxt = season.length ? seasonRange(season) : "—";
   const yrs = d3.range(mYear(state.from), mYear(state.to) + 1)
     .map((y) => ({ y, v: d3.sum(d3.range(12), (mo) => { const i = mIndex(y, mo);
-      return i >= state.from && i <= state.to && i < state.data.nMonths ? s[i] : 0; }) }));
+      return i >= state.from && i <= state.to && hasData(i) ? s[i] : 0; }) }));
   const topY = yrs.reduce((a, b) => (b.v > a.v ? b : a), { y: "—", v: 0 });
   const cls = r === null ? "" : r >= 1.25 ? "up" : r <= 0.8 ? "down" : "";
   const fk = uncKind(focus), [flo, fhi] = monthRange(focus);
   const rangeTxt = r !== null && fk ? `; likely ${fmtPct(flo / nm)} to ${fmtPct(fhi / nm)}` : "";
   document.getElementById("figures").innerHTML = `
-    <div class="figure"><div class="v">${fmt(total)}</div><div class="l">hotspots, ${mLabel(state.from)} – ${mLabel(state.to)}</div></div>
+    <div class="figure"><div class="v">${fmt(total)}</div><div class="l">hotspots, ${mLabel(pFrom)} – ${mLabel(pTo)}</div></div>
     <div class="figure ${cls}"><div class="v">${r === null ? (s[focus] > 0 ? "New" : "—") : fmtPct(r)}</div>
       <div class="l">${mLabel(focus)} vs a normal ${MONTHS_LONG[mMonth(focus)]} (${fmt(s[focus])} vs ${fmt(nm)}${rangeTxt})</div></div>
     <div class="figure"><div class="v">${seasonTxt}</div><div class="l">usual fire season (months at least half as active as the peak)</div></div>
@@ -442,12 +473,12 @@ function seasonRange(ks) {
 }
 
 function renderDetail(norm) {
-  const s = state.series, i = state.focus ?? lastFullMonth(), mo = mMonth(i);
-  const nm = norm[mo].median, v = s.harm[i];
+  const s = state.series, cur = S(), i = state.focus !== null && hasData(state.focus) ? state.focus : lastFullMonth(), mo = mMonth(i);
+  const nm = norm[mo].median, v = cur[i];
   const same = d3.range(mYear(0), mYear(state.data.nMonths - 1) + 1).map((y) => mIndex(y, mo))
-    .filter((k) => k >= 0 && k < state.data.nMonths && k !== i).map((k) => s.harm[k]);
+    .filter((k) => hasData(k) && k !== i).map((k) => cur[k]);
   const rank = same.filter((x) => x > v).length + 1;
-  const firstY = d3.range(mYear(0), mYear(0) + 2).find((y) => mIndex(y, mo) >= 0);
+  const firstY = d3.range(mYear(0), mYear(state.data.nMonths - 1) + 1).find((y) => hasData(mIndex(y, mo)));
   const kind = uncKind(i), [lo, hi] = monthRange(i);
   const ratioTxt = nm > 0 ? `${fmtX(v / nm)}× the normal ${MONTHS_LONG[mo]}` +
       (kind ? ` (likely ${fmtX(lo / nm)}–${fmtX(hi / nm)}×)` : "") +
@@ -460,19 +491,20 @@ function renderDetail(norm) {
     `<p><strong>${mLabel(i)}: ${fmt(v)} hotspots</strong>` +
     (kind ? ` (80% range ${fmtRange([lo, hi])})` : "") + `, ${ratioTxt}. ` +
     `It ranks ${ordinal(rank)} of ${same.length + 1} ${MONTHS_LONG[mo]}s since ${firstY}. ` +
-    `<span class="hint">Source: ${src} (${raw}).` +
+    (state.layer === "harmonized" ? `<span class="hint">Source: ${src} (${raw}).` :
+      `<span class="hint">Showing raw counts (${{ naive: "without harmonization", modis: "MODIS only", viirs: "VIIRS only" }[state.layer]}). Switch “Series shown” back to Harmonized to compare across sensors.`) +
     (gap ? ` ${gap.missing_days} of ${gap.days} days had no ${gap.sensor} data, so the month was scaled to its full length.` : "") +
-    (kind ? " The range comes from how well this conversion predicted held-out years." : " Observed MODIS months carry no conversion uncertainty.") +
+    (state.layer !== "harmonized" ? "" : kind ? " The range comes from how well this conversion predicted held-out years." : " Observed MODIS months carry no conversion uncertainty.") +
     ` Click any month in the calendar to compare it.</span></p>`;
 }
 const ordinal = (n) => n + (["th", "st", "nd", "rd"][(n % 100 - 20) % 10] || ["th", "st", "nd", "rd"][n % 100] || "th");
 
 function renderSeason(norm) {
-  const s = state.series.harm, i = state.focus ?? lastFullMonth(), y = mYear(i);
+  const s = S(), i = state.focus !== null && hasData(state.focus) ? state.focus : lastFullMonth(), y = mYear(i);
   const W = 460, H = 220, m = { t: 14, r: 10, b: 28, l: 44 };
-  const yv = d3.range(12).map((mo) => { const k = mIndex(y, mo); return k >= 0 && k < state.data.nMonths ? s[k] : null; });
+  const yv = d3.range(12).map((mo) => { const k = mIndex(y, mo); return hasData(k) ? s[k] : null; });
   const yr = d3.range(12).map((mo) => { const k = mIndex(y, mo);
-    return k >= 0 && k < state.data.nMonths && uncKind(k) ? monthRange(k) : null; });
+    return hasData(k) && uncKind(k) ? monthRange(k) : null; });
   const ymax = d3.max([...norm.map((d) => d.q75), ...yv.filter((v) => v !== null), ...yr.filter(Boolean).map((r) => r[1])]) || 1;
   const x = d3.scaleBand().domain(d3.range(12)).range([m.l, W - m.r]).padding(0.25);
   const yS = d3.scaleLinear().domain([0, ymax]).nice().range([H - m.b, m.t]);
@@ -496,16 +528,16 @@ function renderSeason(norm) {
   svg.selectAll("line.med").data(norm).join("line").attr("x1", (d, k) => x(k) - 3).attr("x2", (d, k) => x(k) + x.bandwidth() + 3)
     .attr("y1", (d) => yS(d.median)).attr("y2", (d) => yS(d.median)).attr("stroke", "#1d2a2f").attr("stroke-width", 2);
   svg.append("text").attr("x", W - m.r).attr("y", m.t + 2).attr("text-anchor", "end").attr("font-size", 11).attr("fill", "#1d2a2f")
-    .text(`Bars: ${y} (whiskers: 80% range) · line: normal · grey: middle half of years`);
+    .text(`Bars: ${y}${state.layer === "harmonized" ? " (whiskers: 80% range)" : ""} · line: normal · grey: middle half of years`);
 }
 
 function renderAnnual() {
-  const s = state.series.harm;
+  const s = S();
   const first = mYear(state.from), last = mYear(state.to);
   const data = d3.range(first, last + 1).map((y) => {
     let v = 0, full = true;
     for (let mo = 0; mo < 12; mo++) { const i = mIndex(y, mo);
-      if (i < state.from || i > state.to || i >= state.data.nMonths || i < 0) { full = false; continue; } v += s[i]; }
+      if (i < state.from || i > state.to || !hasData(i)) { full = false; continue; } v += s[i]; }
     return { y, v, full, r: yearRange(y) };
   });
   const med = d3.median(data.filter((d) => d.full && d.y >= state.baseFrom && d.y <= state.baseTo), (d) => d.v) || 0;
@@ -542,8 +574,8 @@ function renderAnnual() {
 }
 
 function renderTop() {
-  const s = state.series.harm;
-  const items = d3.range(state.from, state.to + 1).filter((i) => i < state.data.nMonths)
+  const s = S();
+  const items = d3.range(state.from, state.to + 1).filter((i) => hasData(i))
     .map((i) => ({ i, v: s[i] })).sort((a, b) => b.v - a.v).slice(0, 8);
   document.getElementById("top-months").innerHTML = items.map((d) =>
     `<li><a href="#calendar" data-i="${d.i}">${mLabel(d.i)}</a><span>${fmt(d.v)}</span></li>`).join("");
@@ -557,11 +589,64 @@ function renderMeta() {
     `${s.cells.toLocaleString("en-US")} grid cells of 0.1° · N ${state.sel.bbox[0].toFixed(2)}, S ${state.sel.bbox[1].toFixed(2)}, W ${state.sel.bbox[2].toFixed(2)}, E ${state.sel.bbox[3].toFixed(2)}`;
   document.getElementById("area-name").textContent = state.sel.name;
   document.getElementById("area-meta").textContent = sel;
+  const note = document.getElementById("layer-note");
+  note.hidden = state.layer === "harmonized";
+  note.textContent = LAYER_NOTES[state.layer] || "";
+}
+
+/* ---- "Test it yourself": hide a year, learn the factor from the others, predict it ---- */
+function renderTestYear() {
+  const s = state.series, Y = +document.getElementById("ty-year").value;
+  const months = (y) => d3.range(12).map((mo) => mIndex(y, mo));
+  let M = 0, V = 0;
+  for (let y = 2012; y <= 2021; y++) if (y !== Y) for (const i of months(y)) { M += s.modis[i]; V += s.viirs[i]; }
+  const host = document.getElementById("testyear"), out = document.getElementById("ty-result");
+  host.innerHTML = "";
+  if (V <= 0 || M <= 0) {
+    out.innerHTML = "<p>There are too few hotspots in this area to learn a conversion factor. Choose a larger area.</p>";
+    return;
+  }
+  const k = M / V, idx = months(Y);
+  const obs = idx.map((i) => s.modis[i]), raw = idx.map((i) => s.viirs[i]), pred = raw.map((v) => v * k);
+  const tObs = d3.sum(obs), tPred = d3.sum(pred), tRaw = d3.sum(raw);
+  const wape = (p) => (tObs > 0 ? d3.sum(p, (v, j) => Math.abs(v - obs[j])) / tObs : NaN);
+  const pctTxt = (a, b) => (b > 0 ? `${a >= b ? "+" : "−"}${Math.abs(Math.round((a / b - 1) * 100))}%` : "—");
+
+  const W = 560, H = 230, m = { t: 16, r: 12, b: 28, l: 48 };
+  const x = d3.scalePoint().domain(d3.range(12)).range([m.l + 10, W - m.r - 10]);
+  const yS = d3.scaleLinear().domain([0, d3.max([...obs, ...pred, ...raw]) || 1]).nice().range([H - m.b, m.t]);
+  const svg = d3.select(host).append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("role", "img")
+    .attr("aria-label", `Hidden year ${Y}: MODIS observed, predicted from VIIRS, and raw VIIRS`);
+  svg.append("rect").attr("width", W).attr("height", H).attr("fill", "#f7f8f5");
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`)
+    .call(d3.axisBottom(x).tickFormat((d) => MONTHS[d][0]).tickSizeOuter(0));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(yS).ticks(5, "~s").tickSizeOuter(0));
+  const line = (arr) => d3.line().x((d, j) => x(j)).y((d) => yS(d))(arr);
+  svg.append("path").attr("d", line(raw)).attr("fill", "none").attr("stroke", "#9aa5a8").attr("stroke-width", 2).attr("stroke-dasharray", "5 4");
+  svg.append("path").attr("d", line(obs)).attr("fill", "none").attr("stroke", "#1d2a2f").attr("stroke-width", 3);
+  svg.append("path").attr("d", line(pred)).attr("fill", "none").attr("stroke", "#c24b1f").attr("stroke-width", 2.5);
+  svg.selectAll("circle.p").data(pred).join("circle").attr("cx", (d, j) => x(j)).attr("cy", (d) => yS(d)).attr("r", 3).attr("fill", "#c24b1f");
+  const lg = [["#1d2a2f", "MODIS counted (hidden)", ""], ["#c24b1f", "Predicted from VIIRS", ""], ["#9aa5a8", "Raw VIIRS (no conversion)", "5 4"]];
+  lg.forEach(([c, t, dash], j) => {
+    const lx = m.l + 12 + j * 170;
+    svg.append("line").attr("x1", lx).attr("x2", lx + 22).attr("y1", m.t).attr("y2", m.t).attr("stroke", c).attr("stroke-width", 3).attr("stroke-dasharray", dash);
+    svg.append("text").attr("x", lx + 28).attr("y", m.t + 4).attr("font-size", 11).attr("fill", "#1d2a2f").text(t);
+  });
+
+  out.innerHTML = `
+    <p>Factor learned from the other ${2021 - 2012} years of overlap in this area: <strong>1 VIIRS hotspot = ${k.toFixed(2)} MODIS hotspots</strong>.</p>
+    <table class="validation">
+      <tr><th>${Y}, hidden</th><th>Hotspots</th><th>vs MODIS</th><th>Monthly error</th></tr>
+      <tr><td>MODIS counted</td><td>${fmt(tObs)}</td><td>—</td><td>—</td></tr>
+      <tr class="best"><td>Predicted from VIIRS</td><td>${fmt(tPred)}</td><td>${pctTxt(tPred, tObs)}</td><td>${Math.round(wape(pred) * 100)}%</td></tr>
+      <tr><td>Raw VIIRS</td><td>${fmt(tRaw)}</td><td>${pctTxt(tRaw, tObs)}</td><td>${Math.round(wape(raw) * 100)}%</td></tr>
+    </table>
+    <p class="hint">Simplified in-browser version of the validation: one factor for the whole area, with day and night together. The full pipeline uses a factor per 2° region and per day/night overpass, which is more accurate.</p>`;
 }
 
 function renderAll(redrawMap = true) {
   const norm = normals();
-  renderMeta(); renderFigures(norm); renderCalendar(norm); renderDetail(norm); renderSeason(norm); renderAnnual(); renderTop();
+  renderMeta(); renderFigures(norm); renderCalendar(norm); renderDetail(norm); renderSeason(norm); renderAnnual(); renderTop(); renderTestYear();
   if (redrawMap) drawOverlay();
 }
 
@@ -615,6 +700,7 @@ function saveBlob(blob, name) {
 const slug = () => state.sel.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 function downloadMonthly() {
+  const prevLayer = state.layer; state.layer = "harmonized";   // the CSV always carries the harmonized product
   const s = state.series, norm = normals();
   const rows = ["month,harmonized_hotspots_modis_equivalent,harmonized_low_80,harmonized_high_80,modis_observed,viirs_observed,source,normal_median,ratio_to_normal,ratio_low_80,ratio_high_80"];
   for (let i = state.from; i <= state.to && i < state.data.nMonths; i++) {
@@ -624,6 +710,7 @@ function downloadMonthly() {
       `"${sourceOf(i)}"`, nm.toFixed(1), nm > 0 ? (s.harm[i] / nm).toFixed(3) : "",
       nm > 0 ? (lo / nm).toFixed(3) : "", nm > 0 ? (hi / nm).toFixed(3) : ""].join(","));
   }
+  state.layer = prevLayer;
   saveBlob(new Blob([rows.join("\n")], { type: "text/csv" }), `burn-calendar_${slug()}_${mValue(state.from)}_${mValue(state.to)}.csv`);
 }
 
@@ -742,6 +829,11 @@ function initControls() {
     document.querySelectorAll(".toggle button").forEach((x) => x.setAttribute("aria-checked", x === b));
     state.mode = b.dataset.mode; renderAll(false);
   }));
+  const layerSel = document.getElementById("layer");
+  layerSel.addEventListener("change", () => { state.layer = layerSel.value; renderAll(true); });
+  const ty = document.getElementById("ty-year");
+  for (let y = 2012; y <= 2021; y++) ty.insertAdjacentHTML("beforeend", `<option value="${y}"${y === 2020 ? " selected" : ""}>${y}</option>`);
+  ty.addEventListener("change", renderTestYear);
   document.querySelectorAll("[data-png]").forEach((b) => b.addEventListener("click", () => savePng(b.dataset.png)));
   document.getElementById("dl-monthly").addEventListener("click", downloadMonthly);
   document.getElementById("dl-hotspots").addEventListener("click", downloadHotspots);

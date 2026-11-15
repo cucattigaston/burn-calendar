@@ -51,6 +51,16 @@
       <label><span>To</span><input id="d-to" type="month"></label>
     </fieldset>
 
+    <label class="field">
+      <span>Series shown</span>
+      <select id="layer">
+        <option value="harmonized">Harmonized: MODIS-equivalent (recommended)</option>
+        <option value="naive">Without harmonization: MODIS, then raw VIIRS from 2012</option>
+        <option value="modis">MODIS only (raw counts)</option>
+        <option value="viirs">VIIRS only (raw counts)</option>
+      </select>
+    </label>
+
     <fieldset class="baseline">
       <legend>“Normal” is the median of</legend>
       <label><span>From</span><input id="b-from" type="number" min="2001" max="2026" step="1"></label>
@@ -70,6 +80,8 @@
       <h2 id="area-name">All of Argentina</h2>
       <p id="area-meta" class="area-meta"></p>
     </div>
+
+    <p id="layer-note" class="layer-note" hidden></p>
 
     <div class="headline-figures" id="figures"></div>
 
@@ -104,6 +116,14 @@
         <ol id="top-months" class="rank"></ol>
       </figure>
     </div>
+
+    <figure class="test-year">
+      <div class="chart-head"><h3>Test it yourself: hide a year</h3>
+        <label class="inline">Year to hide <select id="ty-year"></select></label>
+        <button type="button" class="btn btn-small" data-png="testyear">Save PNG</button></div>
+      <p class="hint">Both satellites flew together from 2012 to 2021. Pick one of those years. The tool hides it, learns how many MODIS hotspots one VIIRS hotspot is worth from the other years in your area, and predicts the hidden year from VIIRS alone. You can then compare the prediction with what MODIS actually counted. Try the Paraná Delta in 2020.</p>
+      <div class="ty-grid"><div id="testyear"></div><div id="ty-result"></div></div>
+    </figure>
   </section>
 </main>
 
@@ -115,6 +135,7 @@
       <p>This tool expresses everything in <strong>MODIS-equivalent hotspots</strong>. VIIRS counts are converted with conversion factors learned where both sensors overlapped (2012–2021), separately for each 2° region and for day and night passes. Regions with little data lean on the national factor. The early Terra-only months (2000–mid 2002) are scaled the same way to match Terra + Aqua.</p>
       <p>On days when a satellite sent no data at all, such as Terra in mid-2001 or S-NPP in 2022, 2024 and 2026, the month is scaled to its full length. Those months carry a small white dot in the calendar. Months from August 2026 use near-real-time data, which FIRMS may still reprocess.</p>
       <p>Each conversion was tested by hiding one year at a time, learning the factors from the others, and predicting the hidden year.</p>
+      <p><strong>See it for yourself.</strong> Set “Series shown” to <em>Without harmonization</em> to see the false jump in 2012. In the panel <em>Test it yourself: hide a year</em> you can re-run a simplified version of the validation for any area.</p>
       <p><strong>How sure is each number?</strong> Converted months show a likely range, which covers the true MODIS-equivalent value 8 times out of 10. The ranges come from the same hide-one-year test. For each size of value, from a single 0.1° cell to the whole country, we measured how far predictions landed from what MODIS really counted. Small numbers are noisy: an estimate of 10 hotspots means somewhere between 4 and 16. Large ones are tight: an estimate of 1,000 means 730 to 1,150. In the “Compared with normal” view, hatched months could still be normal once that range is taken into account. Months observed directly by MODIS (July 2002 to 2011) carry no conversion uncertainty.</p>
     </div>
     <div>

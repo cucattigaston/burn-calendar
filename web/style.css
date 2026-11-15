@@ -114,6 +114,15 @@ figure { margin: 0; }
 .toggle button { font: 500 13px var(--font); border: 0; background: #fff; padding: 5px 10px; cursor: pointer; color: var(--ink-2); }
 .toggle button[aria-checked="true"] { background: var(--ink); color: #fff; }
 
+.layer-note { margin: 0; padding: 10px 14px; border-left: 4px solid var(--ember); background: #fbeee6; border-radius: var(--radius-control); }
+.layer-note[hidden] { display: none; }
+.test-year .hint { max-width: 90ch; margin-bottom: 10px; }
+.inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.inline select { width: auto; }
+.ty-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; align-items: start; }
+.ty-grid svg { width: 100%; height: auto; display: block; }
+.ty-grid p { margin: 0 0 10px; }
+@media (max-width: 860px) { .ty-grid { grid-template-columns: 1fr; } }
 .detail { background: var(--ash); border-radius: var(--radius-control); padding: 12px 14px; min-height: 48px; }
 .detail p { margin: 0; }
 .detail strong { font-variation-settings: "wdth" 85; }
