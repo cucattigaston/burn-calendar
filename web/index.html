@@ -133,13 +133,23 @@
 <section class="method" id="method">
   <h2>How the two sensors become one record</h2>
   <div class="method-grid">
-    <div>
+    <div class="method-text">
       <p>MODIS (Terra and Aqua, 1 km pixels) has watched fires since 2000 but is being retired. VIIRS (375 m pixels) continues the record with more detail, so it reports several times more hotspots for the same fires. Counting both as they are would invent a fire boom in 2012.</p>
       <p>This tool expresses everything in <strong>MODIS-equivalent hotspots</strong>. VIIRS counts are converted with conversion factors learned where both sensors overlapped (2012–2021), separately for each 2° region and for day and night passes. Regions with little data lean on the national factor. The early Terra-only months (2000–mid 2002) are scaled the same way to match Terra + Aqua.</p>
       <p>When a satellite sent no data at all for 3 or more days in a row, such as Terra in mid-2001 or S-NPP in 2022, 2024 and 2026, the month is scaled to its full length. Single empty days are kept as real days without fire. Those months carry a small white dot in the calendar. Months from August 2026 use near-real-time data, which FIRMS may still reprocess.</p>
       <p>Each conversion was tested by hiding one year at a time, learning the factors from the others, and predicting the hidden year.</p>
       <p><strong>See it for yourself.</strong> Set “Series shown” to <em>Without harmonization</em> to see the false jump in 2012. In the panel <em>Test it yourself: hide a year</em> you can re-run a simplified version of the validation for any area.</p>
       <p><strong>How sure is each number?</strong> Converted months show a likely range, which covers the true MODIS-equivalent value 8 times out of 10. The ranges come from the same hide-one-year test. For each size of value, from a single 0.1° cell to the whole country, we measured how far predictions landed from what MODIS really counted. Small numbers are noisy: an estimate of 10 hotspots means somewhere between 4 and 16. Large ones are tight: an estimate of 1,000 means 730 to 1,150. In the “Compared with normal” view, hatched months could still be normal once that range is taken into account. Months observed directly by MODIS (July 2002 to 2011) carry no conversion uncertainty.</p>
+    <div class="limits" id="limitations">
+      <h3>What hotspots can and cannot tell you</h3>
+      <ul>
+        <li><strong>Activity, not burned area.</strong> A hotspot is a pixel that was very hot when the satellite passed. It says that something was burning, not how many hectares burned. A large, fast grass fire can leave few hotspots, and a long smouldering one many.</li>
+        <li><strong>Only what the satellite sees at that moment.</strong> Each sensor passes only a few times a day. Clouds and thick smoke hide fires, and short fires between passes are missed.</li>
+        <li><strong>Every kind of burning counts.</strong> Wildfires, agricultural and pasture burns, and land clearing all appear as hotspots. Industrial sources, gas flares and volcanoes are removed, but the tool does not separate wildfires from planned burns.</li>
+        <li><strong>Small areas are noisy.</strong> For a few cells, monthly counts are small and the ranges are wide. Use the 80% ranges and the hatching before drawing conclusions.</li>
+        <li><strong>Recent months are provisional.</strong> From August 2026 the data are near-real-time and FIRMS may still reprocess them.</li>
+      </ul>
+    </div>
     </div>
     <div>
       <div id="eras" class="eras"></div>
@@ -149,18 +159,8 @@
       <table class="validation" id="validation-sens" style="margin-top:22px"></table>
     </div>
   </div>
-  <div class="limits" id="limitations">
-    <h3>What hotspots can and cannot tell you</h3>
-    <ul>
-      <li><strong>Activity, not burned area.</strong> A hotspot is a pixel that was very hot when the satellite passed. It says that something was burning, not how many hectares burned. A large, fast grass fire can leave few hotspots, and a long smouldering one many.</li>
-      <li><strong>Only what the satellite sees at that moment.</strong> Each sensor passes only a few times a day. Clouds and thick smoke hide fires, and short fires between passes are missed.</li>
-      <li><strong>Every kind of burning counts.</strong> Wildfires, agricultural and pasture burns, and land clearing all appear as hotspots. Industrial sources, gas flares and volcanoes are removed, but the tool does not separate wildfires from planned burns.</li>
-      <li><strong>Small areas are noisy.</strong> For a few cells, monthly counts are small and the ranges are wide. Use the 80% ranges and the hatching before drawing conclusions.</li>
-      <li><strong>Recent months are provisional.</strong> From August 2026 the data are near-real-time and FIRMS may still reprocess them.</li>
-    </ul>
-  </div>
 
-  <p class="credits">Data: NASA FIRMS — MODIS Collection 6.1 and VIIRS S-NPP 375 m active fire products (LANCE / FIRMS, NASA Earthdata). Only hotspots flagged as vegetation or land fires with nominal or higher confidence are used. Challenge proposed by CONAE (Argentina). Basemap © OpenStreetMap contributors. Built for the NASA Space Apps Challenge 2026; code written with assistance from an AI assistant (Claude, Anthropic).</p>
+  <p class="credits"><span>Data: NASA FIRMS — MODIS Collection 6.1 and VIIRS S-NPP 375 m active fire products (LANCE / FIRMS, NASA Earthdata). Only hotspots flagged as vegetation or land fires with nominal or higher confidence are used. Challenge proposed by CONAE (Argentina). Basemap © OpenStreetMap contributors. Built for the NASA Space Apps Challenge 2026; code written with assistance from an AI assistant (Claude, Anthropic).</span></p>
 </section>
 
 <div id="loading" class="loading" role="status">Loading 25 years of hotspots…</div>

@@ -142,18 +142,21 @@ figure { margin: 0; }
 /* Method */
 .method { padding: 8px 32px 40px; }
 .method h2 { font-size: 22px; font-variation-settings: "wdth" 80; margin-bottom: 12px; }
-.method-grid { display: grid; grid-template-columns: minmax(0, 68ch) 1fr; gap: 32px; }
+.method-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 56px; }
 .method p { margin: 0 0 12px; }
-.limits { margin-top: 26px; max-width: 110ch; background: var(--paper); border-radius: var(--radius-panel); padding: 18px 22px; }
+.method-text { max-width: 78ch; }
+.limits { margin-top: 26px; background: var(--paper); border-radius: var(--radius-panel); padding: 18px 22px; }
 .limits h3 { font-size: 18px; font-variation-settings: "wdth" 85; margin-bottom: 8px; }
 .limits ul { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
-.credits { font-size: 13px; color: var(--ink-2); max-width: 110ch; margin-top: 18px; }
+.credits { font-size: 13px; color: var(--ink-2); margin: 40px 0 0; padding-top: 14px; border-top: 1px solid var(--rule); }
+.method .credits { max-width: none; }
+.credits span { display: block; max-width: 120ch; }
 .eras { display: grid; gap: 4px; margin-bottom: 16px; font-size: 13px; }
 .eras div { display: grid; grid-template-columns: 130px 1fr; gap: 8px; }
 .validation { border-collapse: collapse; font-size: 13px; width: 100%; }
 .validation th, .validation td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--rule); }
 .validation th:first-child, .validation td:first-child { text-align: left; }
-.validation caption { text-align: left; font-weight: 600; padding-bottom: 6px; }
+.validation caption { text-align: left; caption-side: top; font-weight: 600; padding-bottom: 6px; }
 .validation tr.best td { font-weight: 700; }
 
 .loading {
