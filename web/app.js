@@ -526,6 +526,28 @@ function renderMethod() {
   }
   html += `<tr><td colspan="${scales.length + 1}" class="hint" style="text-align:left">Weighted absolute error of monthly counts; lower is better.</td></tr>`;
   document.getElementById("validation").innerHTML = html;
+  fetch("data/validation_burned_area.json").then((r) => (r.ok ? r.json() : null)).then((ba) => {
+    if (!ba) return;
+    const w = ba.break_at_2012_window_2003_2021, f = (x) => `${x.jump_factor.toFixed(2)}× (${x.jump_95ci[0].toFixed(2)}–${x.jump_95ci[1].toFixed(2)})`;
+    document.getElementById("validation-ba").innerHTML =
+      `<caption>Independent check: hotspots per unit of burned area (MODIS MCD64A1), change at the 2012 switch, 2003–2021</caption>
+       <tr><th>Series</th><th>Change in 2012 (95% range)</th></tr>
+       <tr><td>MODIS observed throughout (reference)</td><td>${f(w["MODIS observed throughout (reference)"])}</td></tr>
+       <tr class="best"><td>Harmonized (this tool)</td><td>${f(w.harmonized)}</td></tr>
+       <tr><td>Raw VIIRS after 2011</td><td>${f(w["naive (raw VIIRS after 2011)"])}</td></tr>
+       <tr><td colspan="2" class="hint" style="text-align:left">The harmonized series changes exactly as MODIS itself does, so the switch adds no artificial jump. Raw VIIRS would show almost 3× more fire per hectare. Burned area: Global Fire Dashboard (CRU, UEA), national monthly totals.</td></tr>`;
+  }).catch(() => {});
+  fetch("data/validation_conae.json").then((r) => (r.ok ? r.json() : null)).then((c) => {
+    if (!c) return;
+    const a = c.conae_vs_firms_aqua_all_types, m = c.mean_relative;
+    document.getElementById("validation-conae").innerHTML =
+      `<caption>Independent check: CONAE hotspot catalogue (own MODIS Aqua processing), Argentina</caption>
+       <tr><th>Comparison</th><th>Result</th></tr>
+       <tr><td>CONAE Aqua vs FIRMS Aqua, monthly, 2002–2023</td><td>ratio ${a.ratio_of_totals.toFixed(2)} · r = ${a.pearson_r_monthly.toFixed(3)}</td></tr>
+       <tr class="best"><td>Harmonized ÷ CONAE Aqua, 2012–2021 vs 2003–2011</td><td>${m["2012-2021 (VIIRS era, calibration years)"].toFixed(2)}×</td></tr>
+       <tr><td>Harmonized ÷ CONAE Aqua, 2022–2023 vs 2003–2011</td><td>${m["2022-2023 (VIIRS era, after calibration window)"].toFixed(2)}×</td></tr>
+       <tr><td colspan="2" class="hint" style="text-align:left">Against CONAE's own MODIS record the harmonized series stays level across the 2012 switch (1.00× would be perfect). From 2024 the CONAE catalogue holds about a third of the Aqua hotspots FIRMS reports, so later years were not compared.</td></tr>`;
+  }).catch(() => {});
 }
 
 /* ------------------------------------------------------------------ downloads */

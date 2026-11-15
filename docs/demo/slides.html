@@ -93,22 +93,21 @@ ul.plain { padding-left: 34px; display: grid; gap: 18px; }
 
 <!-- 4. Validation -->
 <section class="slide">
-  <h2>Tested by hiding one year at a time</h2>
+  <h2>Tested three ways, including against CONAE</h2>
   <div class="cols">
     <div>
-      <p class="muted">Monthly error when predicting a hidden year of MODIS from VIIRS, Argentina</p>
+      <p class="muted">Monthly error when predicting a hidden year of MODIS from VIIRS</p>
       <div class="big"><span class="num from">225%</span><span class="arrow">→</span><span class="num">7.5%</span></div>
-      <p>National bias under 1 %. Year by year, converted VIIRS stays within ±10 % of observed MODIS from 2012 to 2025, with no jump at the switch.</p>
+      <p style="font-size:30px">National bias under 1 %. Converted VIIRS stays within ±10 % of MODIS every year from 2012 to 2025.</p>
     </div>
     <table>
-      <tr><th>Method</th><th>National</th><th>2° region</th><th>0.5° local</th></tr>
-      <tr><td>Raw VIIRS</td><td>224.8%</td><td>226.5%</td><td>231.0%</td></tr>
-      <tr><td>National ratio</td><td>9.9%</td><td>22.2%</td><td>37.6%</td></tr>
-      <tr><td>Regional ratio</td><td>8.4%</td><td>19.7%</td><td>35.9%</td></tr>
-      <tr class="used"><td>Regional, day/night, shrinkage</td><td>7.5%</td><td>18.7%</td><td>35.7%</td></tr>
+      <tr><th>Independent check</th><th>Harmonized</th><th>Raw VIIRS</th></tr>
+      <tr><td>Hotspots per hectare burned (MODIS MCD64A1), change at 2012. MODIS itself: 0.84×</td><td>0.85×</td><td>2.79×</td></tr>
+      <tr><td>Against CONAE’s own MODIS Aqua record, 2012–2021 vs 2003–2011</td><td>0.98×</td><td>3.14×</td></tr>
+      <tr><td>Day / night VIIRS gain vs published 375 m behaviour</td><td colspan="2">2.7× day, 6.7× night: consistent</td></tr>
     </table>
   </div>
-  <div class="foot"><span>Burn Calendar</span><span>Leave-one-year-out cross-validation, 2012–2021, weighted absolute error of monthly counts</span></div>
+  <div class="foot"><span>Burn Calendar</span><span>Leave-one-year-out cross-validation 2012–2021 · burned area: Global Fire Dashboard (CRU/UEA) · CONAE Catálogo de Focos de Calor</span></div>
 </section>
 
 <!-- 5. The app -->

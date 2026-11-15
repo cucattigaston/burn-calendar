@@ -80,6 +80,49 @@ shows the weighted absolute error of monthly counts:
 National bias after harmonization is below 1 %. Year by year, converted VIIRS stays within about ±10 % of
 observed MODIS from 2012 to 2025 (`reports/yearly_sensor_comparison.csv`), with no jump at the switch.
 
+**Independent check against burned area.** If harmonization works, the number of hotspots per hectare
+burned should not jump when the record switches from MODIS to VIIRS. We compared monthly hotspots with
+national monthly burned area from MODIS MCD64A1 c6.1, taken from the Global Fire Dashboard (Climatic
+Research Unit, UEA). The model, `pipeline/validate_burned_area.py`, is log(hotspots) ~ log(burned area) +
+a 2012 step + month of year. Results for 2003–2021, when Terra + Aqua are complete and before orbit drift:
+
+| Series | Change in hotspots per unit burned area at 2012 (95% range) |
+|---|---|
+| MODIS observed throughout (reference) | 0.84× (0.79–0.91) |
+| **Harmonized** | **0.85× (0.79–0.92)** |
+| Raw VIIRS after 2011 | 2.79× (2.58–3.02) |
+
+The harmonized series changes exactly as MODIS itself does. The modest decline after 2012 also shows up in
+MODIS alone, so it reflects a real change in fires (or in the burned-area product), not an artifact of the
+switch. Without harmonization the record would show almost 3× more fire per hectare from 2012. Over the
+full 2001–mid-2023 window the harmonized step is 0.90×, against 1.04× for MODIS and 3.51× for raw VIIRS;
+the gap comes from the Terra-only scaling of 2001–02 and MODIS drift in 2022–23. Monthly hotspots and burned
+area have a log-correlation of 0.89 both before and after 2012.
+
+**Independent check against CONAE's catalogue.** CONAE (Argentina's space agency) runs its own MODIS
+processing chain on Aqua data received for Argentina. We downloaded its monthly totals by province (Aqua,
+confidence ≥ 50) from the Catálogo de Focos de Calor, and compared them in `pipeline/validate_conae.py`.
+- **Processing agreement.** CONAE Aqua vs FIRMS Aqua, 2002–2023: ratio of totals 0.99, monthly correlation
+  0.997.
+- **Continuity across the switch.** The ratio of harmonized to CONAE Aqua is 0.98× in 2012–2021 and 1.04×
+  in 2022–2023, relative to the MODIS era (2003–2011). Raw VIIRS would be 3.14×. Monthly log-correlation for 2012–2023 is 0.986.
+- **A finding for CONAE.** From 2024 the catalogue holds only 31% (2024) and 45% (2025) of the Aqua hotspots
+  that FIRMS reports for Argentina, while FIRMS Aqua counts stay steady. This looks like a reception or
+  processing gap in the catalogue, so years from 2024 were left out of the comparison.
+
+**Comparison with published work.**
+- Our national VIIRS-to-MODIS ratio is 3.2×: 2.7× for day passes and 6.7× for night passes. The literature
+  explains this pattern.
+  - Schroeder et al. (2014) found the 375 m product gives about 3× more daytime and 25× more nighttime fire
+    pixels than VIIRS 750 m, because it detects small and cool fires, especially at night.
+  - FIRMS states that the 375 m data respond better over small fires and perform better at night.
+- Studies comparing VIIRS 375 m with Aqua MODIS find that VIIRS detections are close to a superset of MODIS.
+  In Africa, VIIRS misses under 1% of daily Aqua MODIS detections at 0.25°, while MODIS misses many VIIRS
+  detections. In Northeast Asia, 77% of VIIRS detections have no concurrent MODIS detection, and one case
+  study found about 6× more VIIRS fire pixels. These findings support converting with a ratio.
+- MODIS detection drops by about 67% from nadir to 60° view angle (Li et al., 2018). We do not correct scan
+  angle explicitly; regional ratios learned over many overpasses absorb the average effect.
+
 **Limitations.**
 - Hotspots measure burning activity, not burned area.
 - Cloud and smoke hide fires differently for each sensor.
@@ -119,6 +162,23 @@ The app is a static site with no server or build step:
   - MODIS Collection 6.1 active fire / thermal anomalies, 1 km (MCD14), DOI 10.5067/FIRMS/MODIS/MCD14ML;
   - VIIRS S-NPP 375 m active fire, standard (DOI 10.5067/FIRMS/VIIRS/VNP14IMGT.002) and near-real-time
     (DOI 10.5067/FIRMS/VIIRS/VNP14IMGT_NRT.002).
+- **CONAE hotspot catalogue (validation only):** Catálogo de Focos de Calor, Comisión Nacional de
+  Actividades Espaciales, https://catalogos5.conae.gov.ar/catalogofocos/ (registered access). Aqua monthly
+  totals by province, confidence ≥ 50.
+- **Burned area (validation only):** MODIS MCD64A1 c6.1 (Giglio et al., 2018), national monthly totals from the
+  Global Fire Dashboard, Climatic Research Unit, University of East Anglia
+  (https://climaticresearchunit.github.io/global-fire-dashboard/).
+- **References:**
+  - Schroeder, W., Oliva, P., Giglio, L., Csiszar, I. (2014). The New VIIRS 375 m active fire detection data
+    product: Algorithm description and initial assessment. *Remote Sensing of Environment* 143, 85–96.
+  - Li, F. et al. (2018). Comparison of fire radiative power estimates from VIIRS and MODIS observations.
+    *Journal of Geophysical Research: Atmospheres* 123.
+  - Biomass Burning in Africa: An Investigation of Fire Radiative Power Missed by MODIS Using the 375 m
+    VIIRS Active Fire Product. *Remote Sensing* 12(10), 1561 (2020).
+  - Fire Detection and Fire Radiative Power in Forests and Low-Biomass Lands in Northeast Asia: MODIS versus
+    VIIRS Fire Products. *Remote Sensing* 12(18), 2870 (2020).
+  - Giglio, L. et al. (2018). The Collection 6 MODIS burned area mapping algorithm and product. *Remote
+    Sensing of Environment* 217, 72–85.
 - **Challenge:** CONAE (Comisión Nacional de Actividades Espaciales, Argentina).
 - **Boundary:** Argentina from Natural Earth 1:10m (public domain), via world-atlas. It agrees with 99.99%
   of FIRMS' own Argentina assignments for 2025.

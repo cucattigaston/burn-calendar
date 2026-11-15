@@ -73,6 +73,18 @@ https://cucattigaston.github.io/burn-calendar/  (code: https://github.com/cucatt
 National bias is under 1%, and converted VIIRS stays within ±10% of observed MODIS each year from 2012 to
 2025.
 
+**Independent checks.**
+- **Burned area.** Against MODIS MCD64A1 burned area (2003–2021), hotspots per hectare change by 0.85× at
+  the 2012 switch in the harmonized series and by 0.84× in MODIS itself. That is identical, so the switch adds
+  no artificial jump. Raw VIIRS would show 2.79×.
+- **CONAE's catalogue.** CONAE processes MODIS Aqua independently, and its catalogue matches FIRMS Aqua
+  (2002–2023: ratio 0.99, r = 0.997). Against it, the harmonized series stays level across the switch (0.98×
+  in 2012–2021). We also found that from 2024 the CONAE catalogue holds only about a third to a half of the
+  Aqua hotspots FIRMS reports, a gap worth reporting to CONAE.
+- **Published work.** Our day and night conversion factors (VIIRS reports 2.7× more hotspots than MODIS by
+  day and 6.7× by night) match the published pattern: VIIRS 375 m gains most at night and on small fires
+  (Schroeder et al., 2014), and its detections are close to a superset of MODIS.
+
 The web app is static, with no server and no build step:
 - a 3 MB binary grid, decoded in the browser;
 - 1° tiles of raw hotspots for CSV export;
@@ -120,9 +132,14 @@ code is marked in file headers and in the README. No AI-generated images or audi
 - FIRMS yearly country files: https://firms.modaps.eosdis.nasa.gov/country/
 
 ## Space Agency Partner Data and Other References
-- CONAE (National Space Activities Commission of Argentina): challenge statement and its hotspot
-  catalogue (Catálogo de Focos de Calor), used as a reference for the problem.
+- CONAE (National Space Activities Commission of Argentina): challenge statement, and its hotspot catalogue,
+  used as an independent validation source.
 - D3 (ISC), Leaflet (BSD-2), Leaflet.draw (MIT), Archivo typeface (SIL OFL). All open source and bundled
   in the repository.
+- MODIS MCD64A1 c6.1 burned area, national monthly totals from the Global Fire Dashboard (Climatic Research
+  Unit, University of East Anglia), used for validation.
+- CONAE Catálogo de Focos de Calor (Aqua MODIS monthly totals by province), used for validation.
+- Schroeder et al. (2014), *Remote Sensing of Environment* 143; Li et al. (2018), *JGR Atmospheres*; Giglio
+  et al. (2018), *Remote Sensing of Environment* 217.
 - Argentina boundary: Natural Earth 1:10m (public domain), via world-atlas.
 - Basemap tiles © OpenStreetMap contributors.
