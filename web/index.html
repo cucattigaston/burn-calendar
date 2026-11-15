@@ -47,8 +47,10 @@
 
     <fieldset class="dates">
       <legend>Date range</legend>
-      <label><span>From</span><input id="d-from" type="month"></label>
-      <label><span>To</span><input id="d-to" type="month"></label>
+      <div class="ym"><span>From</span>
+        <div class="ym-pair"><select id="d-from-m" aria-label="From month"></select><select id="d-from-y" aria-label="From year"></select></div></div>
+      <div class="ym"><span>To</span>
+        <div class="ym-pair"><select id="d-to-m" aria-label="To month"></select><select id="d-to-y" aria-label="To year"></select></div></div>
     </fieldset>
 
     <label class="field">

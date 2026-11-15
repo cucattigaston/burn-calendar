@@ -802,20 +802,30 @@ function initControls() {
     setSelection({ name: `Box ${n.toFixed(2)}, ${w.toFixed(2)} to ${s.toFixed(2)}, ${e.toFixed(2)}`, poly: bboxPoly(n, s, w, e) });
   });
 
-  const first = mValue(0), last = mValue(d.nMonths - 1);
-  const fromI = document.getElementById("d-from"), toI = document.getElementById("d-to");
-  fromI.min = toI.min = first; fromI.max = toI.max = last;
+  // month + year dropdowns (the native month picker is awkward to type into, and Safari lacks it)
   state.from = Math.max(0, mIndex(2001, 0)); state.to = d.nMonths - 1;
-  fromI.value = mValue(state.from); toI.value = mValue(state.to);
+  const ids = { from: ["d-from-m", "d-from-y"], to: ["d-to-m", "d-to-y"] };
+  for (const [mId, yId] of Object.values(ids)) {
+    const mS = document.getElementById(mId), yS = document.getElementById(yId);
+    MONTHS_LONG.forEach((n, k) => mS.insertAdjacentHTML("beforeend", `<option value="${k}">${n}</option>`));
+    for (let y = mYear(0); y <= mYear(d.nMonths - 1); y++) yS.insertAdjacentHTML("beforeend", `<option value="${y}">${y}</option>`);
+  }
+  const setPickers = () => {
+    for (const [key, [mId, yId]] of Object.entries(ids)) {
+      const i = state[key];
+      document.getElementById(mId).value = mMonth(i); document.getElementById(yId).value = mYear(i);
+    }
+  };
+  setPickers();
   const onDates = () => {
-    const [fy, fm] = fromI.value.split("-").map(Number), [ty, tm] = toI.value.split("-").map(Number);
-    if (!fy || !ty) return;
-    let a = Math.max(0, mIndex(fy, fm - 1)), b = Math.min(d.nMonths - 1, mIndex(ty, tm - 1));
+    const get = ([mId, yId]) => mIndex(+document.getElementById(yId).value, +document.getElementById(mId).value);
+    let a = Math.min(Math.max(0, get(ids.from)), d.nMonths - 1), b = Math.min(Math.max(0, get(ids.to)), d.nMonths - 1);
     if (a > b) [a, b] = [b, a];
     state.from = a; state.to = b; if (state.focus !== null && (state.focus < a || state.focus > b)) state.focus = null;
+    setPickers();          // show the clamped / swapped values
     renderAll(true);
   };
-  fromI.addEventListener("change", onDates); toI.addEventListener("change", onDates);
+  for (const id of [...ids.from, ...ids.to]) document.getElementById(id).addEventListener("change", onDates);
 
   const bF = document.getElementById("b-from"), bT = document.getElementById("b-to");
   bF.value = state.baseFrom; bT.value = state.baseTo;

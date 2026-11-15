@@ -68,6 +68,9 @@ legend { font-weight: 600; font-size: 14px; color: var(--ink); padding: 0; margi
 .bbox { grid-template-columns: 1fr 1fr; }
 .bbox legend, .bbox .btn { grid-column: 1 / -1; }
 .dates, .baseline { grid-template-columns: 1fr 1fr; }
+.ym { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.ym-pair { display: grid; grid-template-columns: 1fr 1.1fr; gap: 4px; }
+.ym-pair select { padding: 7px 4px; }
 .dates legend, .baseline legend { grid-column: 1 / -1; }
 input, select {
   font: inherit; color: var(--ink); background: #fff; width: 100%;
